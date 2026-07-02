@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chléatoune — Guide de l'aventurière</title>
+<link rel="icon" href="icone-192.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --fond: #0b0b0f; --panneau: #14141a; --carte: #101016; --bord: #3c3c48;
+    --texte: #e8e8f0; --accent: #ffd94a; --vert: #7dbb5c; --rose: #ff8ac2;
+    --bleu: #5ab4d4; --dore: #f2d16b; --violet: #b48ae0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--fond); color: var(--texte);
+    font-family: 'VT323', monospace; font-size: 20px; line-height: 1.5;
+    padding: 32px 16px 80px;
+  }
+  main { max-width: 860px; margin: 0 auto; }
+  h1, h2, h3 { font-family: 'Press Start 2P', monospace; }
+  h1 { color: var(--accent); font-size: 22px; text-align: center; margin-bottom: 8px; }
+  .sous-titre { text-align: center; color: var(--rose); margin-bottom: 30px; font-size: 22px; }
+  h2 {
+    color: var(--accent); font-size: 14px; margin: 40px 0 14px;
+    border-bottom: 3px solid var(--bord); padding-bottom: 8px;
+  }
+  h3 { color: var(--rose); font-size: 11px; margin: 20px 0 8px; }
+  p { margin-bottom: 10px; }
+  .carte {
+    background: var(--carte); border: 2px solid var(--bord); border-radius: 8px;
+    padding: 14px 18px; margin: 12px 0;
+  }
+  .conseil { border-left: 5px solid var(--vert); }
+  .important { border-left: 5px solid var(--accent); }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  th, td { border: 2px solid var(--bord); padding: 7px 10px; text-align: left; }
+  th { background: var(--panneau); color: var(--accent); font-family: 'Press Start 2P', monospace; font-size: 9px; }
+  kbd {
+    background: var(--panneau); border: 2px solid var(--bord); border-bottom-width: 4px;
+    border-radius: 5px; padding: 1px 8px; font-family: 'Press Start 2P', monospace; font-size: 10px;
+  }
+  .accent { color: var(--accent); } .vert { color: var(--vert); } .rose { color: var(--rose); }
+  .bleu { color: var(--bleu); } .dore { color: var(--dore); } .violet { color: var(--violet); }
+  ul, ol { margin: 8px 0 12px 24px; }
+  li { margin-bottom: 5px; }
+  .sommaire { columns: 2; }
+  .sommaire a { color: var(--bleu); text-decoration: none; }
+  .sommaire a:hover { color: var(--accent); }
+  .pied { text-align: center; margin-top: 50px; color: var(--rose); font-size: 22px; }
+  @media print { body { background: #fff; color: #111; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>✦ CHLÉATOUNE ✦</h1>
+  <p class="sous-titre">Guide de l'aventurière — sans (trop de) spoilers 🌸</p>
+
+  <div class="carte sommaire">
+    <ul>
+      <li><a href="#depart">Bien démarrer</a></li>
+      <li><a href="#controles">Les contrôles</a></li>
+      <li><a href="#boucle">La boucle du jeu</a></li>
+      <li><a href="#rebirb">Le Rebirb &amp; les plumes</a></li>
+      <li><a href="#cartes">Les cartes du monde</a></li>
+      <li><a href="#compagnons">Les compagnons</a></li>
+      <li><a href="#expedition">L'Expédition (combat)</a></li>
+      <li><a href="#peche">La pêche</a></li>
+      <li><a href="#desert">Le désert doré</a></li>
+      <li><a href="#sauvegarde">Ta sauvegarde</a></li>
+    </ul>
+  </div>
+
+  <h2 id="depart">🌱 Bien démarrer</h2>
+  <p>Bienvenue ! Tu incarnes une petite héroïne dans un monde de prairies, de
+  donjons et de pontons de pêche. Le principe : <span class="accent">ramasser des
+  smiski</span> (les petites figurines posées dans l'herbe), les dépenser en
+  améliorations, devenir de plus en plus forte… et recommencer, en mieux.</p>
+  <div class="carte important">Au premier lancement, tu crées <b>ton personnage</b> :
+  choisis ton prénom et ton apparence. Chaque personnage garde sa propre
+  progression — plusieurs personnes peuvent jouer sur la même machine.</div>
+
+  <h2 id="controles">🎮 Les contrôles</h2>
+  <table>
+    <tr><th>Touche</th><th>Action</th></tr>
+    <tr><td><kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd> ou flèches</td><td>Se déplacer</td></tr>
+    <tr><td><kbd>E</kbd></td><td><b>Interagir</b> — panneaux, portails, marchands, arbres… (une infobulle apparaît quand tu es assez proche)</td></tr>
+    <tr><td><kbd>ESPACE</kbd></td><td>Pêcher (lancer la ligne / ferrer)</td></tr>
+    <tr><td><kbd>B</kbd></td><td>La boutique de pêche (sur le ponton)</td></tr>
+    <tr><td><kbd>C</kbd></td><td>Mode AUTO (un aimant à smiski — à débloquer !)</td></tr>
+    <tr><td><kbd>F</kbd></td><td>Le Mikudex (ta collection de poissons)</td></tr>
+    <tr><td><kbd>P</kbd></td><td>Ton profil (statistiques)</td></tr>
+    <tr><td><kbd>ÉCHAP</kbd></td><td>Menu : volume, sauvegarde, changer de personnage</td></tr>
+  </table>
+
+  <h2 id="boucle">🔄 La boucle du jeu</h2>
+  <ol>
+    <li>Marche sur les <span class="vert">smiski</span> pour les ramasser.</li>
+    <li>Dépense-les dans le <b>panneau de droite</b> : plus de valeur, apparitions
+    plus rapides, plus de smiski à l'écran, chaussures magiques… Le bouton
+    <b>MAX</b> achète tout ce que ta bourse permet.</li>
+    <li>Quand les nombres deviennent gros : <span class="rose">REBIRB</span> !</li>
+  </ol>
+  <div class="carte conseil">💡 Astuce : commence par quelques niveaux de
+  <b>VALEUR</b> et de <b>PLUS RAPIDES</b>, puis économise pour ton premier
+  <b>DOUGHCAT</b> — il ramasse tout seul, même quand tu poses le clavier.</div>
+
+  <h2 id="rebirb">🪶 Le Rebirb &amp; les plumes</h2>
+  <p>À <b>1 000 smiski cumulés</b> (la barre en bas à gauche), le sous-onglet
+  <span class="rose">REBIRB</span> te propose de tout recommencer… en échange de
+  <span class="bleu">plumes</span> :</p>
+  <ul>
+    <li>Chaque plume gagnée donne <b>+10 % de gains pour toujours</b> (et dépenser
+    ses plumes ne fait pas reculer ce bonus).</li>
+    <li>Les plumes s'investissent dans les <b>panneaux de talents</b> plantés dans
+    la prairie — des bonus permanents, va les lire avec <kbd>E</kbd> !</li>
+    <li>Chaque rebirb coûte plus cher que le précédent (×5), mais rapporte plus de plumes.</li>
+  </ul>
+  <table>
+    <tr><th>Rebirb</th><th>Ce que tu débloques</th></tr>
+    <tr><td>1er</td><td>La <span class="accent">SCÈNE</span> (figurines Miku), le <span class="dore">DÉSERT DORÉ</span>, et le mode <b>AUTO</b> (touche <kbd>C</kbd>)</td></tr>
+    <tr><td>2e</td><td>La <span class="vert">FORÊT</span> (brindilles)… et son habitant géant 🌳</td></tr>
+    <tr><td>3e</td><td>La <span class="violet">MINE</span> (minerai)</td></tr>
+    <tr><td>Et après ?</td><td>… ce guide s'arrête ici. À toi de découvrir 😉</td></tr>
+  </table>
+
+  <h2 id="cartes">🗺 Les cartes du monde</h2>
+  <p>Navigue entre les cartes avec les <b>flèches sur les bords de l'écran</b>.</p>
+  <table>
+    <tr><th>Carte</th><th>Ce qu'on y trouve</th></tr>
+    <tr><td>🌼 PRAIRIE</td><td>Les smiski, les <b>panneaux de talents</b> (plumes), et le <b>ponton de pêche</b> tout au sud</td></tr>
+    <tr><td>🎤 SCÈNE</td><td>Les figurines Miku, avec leur propre arbre d'améliorations dans la boutique</td></tr>
+    <tr><td>🌳 FORÊT</td><td>Les brindilles… et un <b>arbre géant</b> qui a faim. Nourris-le, il te le rendra (pense aux nuits !)</td></tr>
+    <tr><td>⛏ MINE</td><td>Le minerai</td></tr>
+    <tr><td>✨ DÉSERT DORÉ</td><td>La terre des <span class="dore">smiski dorés</span>, une monnaie rare et précieuse</td></tr>
+    <tr><td>🏰 DONJON</td><td>Le hall : un grand <b>portail violet</b> (l'Expédition), un autel étrange, et une porte close…</td></tr>
+  </table>
+
+  <h2 id="compagnons">🐱 Les compagnons</h2>
+  <ul>
+    <li><b>Les doughcats</b> (chats-brioche) : achetables dans l'onglet SMISKI, ils
+    ramassent les objets de la carte à ta place — et ils sont <b>permanents</b>
+    (ils survivent au rebirb). Ils savent aussi se battre : chacun a le quart de
+    tes statistiques, et s'il tombe au combat, il revient après un petit repos.</li>
+    <li><b>D'autres compagnons</b> t'attendent plus loin dans l'aventure… ouvre l'œil
+    dans la forêt et sur le ponton 👀</li>
+  </ul>
+
+  <h2 id="expedition">⚔ L'Expédition (le donjon)</h2>
+  <p>Traverse le portail du hall (<kbd>E</kbd>) : chaque <b>étage</b> est un monde
+  différent (forêt, désert, fond marin, neige…) rempli de monstres. Ton héroïne
+  <b>attaque automatiquement</b> au contact — approche-toi, elle fait le reste.</p>
+  <ul>
+    <li>Les monstres donnent de l'<span class="bleu">XP</span> : chaque niveau
+    offre <b>3 points (SP)</b> à répartir dans l'onglet <b>COMPÉTENCES</b>
+    (Vitalité, Récupération, Force).</li>
+    <li>Étage vidé = étage suivant, plus difficile. Un <b>boss</b> rôde
+    régulièrement…</li>
+    <li>Les <span class="dore">coffres</span> lâchés par les ennemis contiennent des
+    smiski dorés — et parfois mieux.</li>
+    <li>K.O. ? Pas de panique : simple retour à la prairie, tu ne perds rien, et tu
+    reprendras l'Expédition à ton meilleur étage.</li>
+  </ul>
+  <div class="carte conseil">💡 La barre de vie ne s'affiche qu'en Expédition. Si
+  elle fond trop vite, investis quelques SP en Vitalité/Récupération, ou reviens
+  te renforcer avant d'y retourner.</div>
+
+  <h2 id="peche">🎣 La pêche</h2>
+  <p>Tout au sud de la prairie, un ponton t'attend (<kbd>E</kbd>). Appuie sur
+  <kbd>ESPACE</kbd> pour lancer, attends que le bouchon s'agite (« ! ! ! »), et
+  <kbd>ESPACE</kbd> au bon moment pour ferrer !</p>
+  <ul>
+    <li>Déplace-toi sur le ponton : un <b>banc de poissons</b> (des remous dans
+    l'eau) se promène — pêcher dessus mord plus vite et plus rare.</li>
+    <li>La boutique (<kbd>B</kbd>) vend des <b>cannes</b> plus performantes, des
+    <b>appâts</b> à consommer, et des <b>pêcheurs automatiques</b> qui travaillent
+    même quand tu es ailleurs.</li>
+    <li>Remplis ton <b>Mikudex</b> (<kbd>F</kbd>) : 16 espèces, du commun au
+    <span class="dore">légendaire</span>. Les premières captures rares offrent des
+    plumes, et il paraît qu'il existe des variantes <b>✨ shiny</b>…</li>
+  </ul>
+
+  <h2 id="desert">✨ Le désert doré</h2>
+  <p>Un désert qui déborde de <span class="dore">smiski dorés</span> — la monnaie
+  rare du jeu. Elle sert aux <b>panneaux du désert</b> (dont un certain
+  marchand…) et à quelques achats de luxe ailleurs. Explore, les panneaux
+  t'expliqueront tout avec <kbd>E</kbd>.</p>
+
+  <h2 id="sauvegarde">💾 Ta sauvegarde</h2>
+  <ul>
+    <li>Le jeu sauvegarde <b>tout seul</b> toutes les 10 secondes et à chaque achat.</li>
+    <li>Menu <kbd>ÉCHAP</kbd> : ton <b>CODE CLOUD</b> (précieux ! note-le) permet de
+    retrouver ta partie sur n'importe quel appareil, et l'export JSON sert de
+    ceinture de sécurité.</li>
+    <li>Sur Mac : ouvre le jeu dans Safari → <b>Fichier → Ajouter au Dock</b> pour
+    l'installer comme une vraie application.</li>
+  </ul>
+
+  <p class="pied">Fait avec 💝 — bonne aventure, Chléatoune !</p>
+</main>
+</body>
+</html>
