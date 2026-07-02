@@ -1,0 +1,40 @@
+{
+  "name": "birb-like",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "app": "npm run build && electron .",
+    "dist:app": "npm run build && electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "~5.6.2",
+    "vite": "^5.4.8"
+  },
+  "build": {
+    "appId": "com.chleatoune.jeu",
+    "productName": "Chleatoune",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**",
+      "electron/**",
+      "build/icon.ico"
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "build/icon.ico"
+    },
+    "portable": {
+      "artifactName": "Chleatoune.exe"
+    }
+  }
+}

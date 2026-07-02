@@ -1,0 +1,696 @@
+/* Look rétro : fond quasi noir, bordures claires épaisses, texte
+   majuscules, police pixel (plan 01, étape 4). */
+
+:root {
+  --fond: #0b0b0f;
+  --panneau: #14141a;
+  --carte: #101016;
+  --bord: #3c3c48;
+  --texte: #e8e8f0;
+  --accent: #ffd94a;
+  --vert: #4caf50;
+  --rouge: #e5533f;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: 'Press Start 2P', 'VT323', monospace;
+  background: #000;
+  color: var(--texte);
+  overflow: hidden;
+  text-transform: uppercase;
+}
+
+#jeu {
+  display: flex;
+  height: 100vh;
+}
+
+#game-wrap {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+#game-wrap.flash::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  pointer-events: none;
+  animation: flash 0.25s ease-out forwards;
+}
+
+@keyframes flash {
+  from { opacity: 0.7; }
+  to { opacity: 0; }
+}
+
+canvas#game-area {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  background: #4a9e46;
+}
+
+/* ------------------------------------------------------------- boutons */
+.btn {
+  font-family: inherit;
+  font-size: 9px;
+  text-transform: uppercase;
+  color: var(--texte);
+  background: #1c1c24;
+  border: 2px solid var(--bord);
+  border-radius: 4px;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--texte);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn.affordable {
+  background: #1c4a26;
+  border-color: var(--vert);
+}
+
+.btn.on {
+  background: #1c4a26;
+  border-color: var(--vert);
+}
+
+/* ----------------------------------------------------------------- HUD */
+#hud {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.capsule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(10, 10, 14, 0.78);
+  border: 2px solid var(--bord);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 10px;
+}
+
+.capsule canvas {
+  width: 22px;
+  height: 22px;
+  image-rendering: pixelated;
+}
+
+.capsule .taux {
+  opacity: 0.65;
+  font-size: 8px;
+}
+
+.capsule.pulse {
+  animation: pulse 0.25s;
+}
+
+@keyframes pulse {
+  50% { transform: scale(1.08); }
+}
+
+#btn-auto {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* niveau + XP, sous le bouton AUTO */
+#barre-xp {
+  position: absolute;
+  top: 46px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(10, 10, 14, 0.78);
+  border: 2px solid var(--bord);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 8px;
+}
+
+#barre-xp-fond {
+  width: 140px;
+  height: 8px;
+  border: 2px solid var(--bord);
+  border-radius: 4px;
+  background: #000;
+  overflow: hidden;
+}
+
+#barre-xp-fill {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width 0.2s;
+}
+
+/* PV de l'héroïne, en bas au centre (visible au donjon) */
+#barre-pv {
+  position: absolute;
+  bottom: 46px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(10, 10, 14, 0.78);
+  border: 2px solid var(--bord);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 8px;
+}
+
+#barre-pv-fond {
+  width: 180px;
+  height: 10px;
+  border: 2px solid var(--bord);
+  border-radius: 4px;
+  background: #000;
+  overflow: hidden;
+}
+
+#barre-pv-fill {
+  height: 100%;
+  width: 100%;
+  background: var(--rouge);
+  transition: width 0.15s;
+}
+
+#zone-indicateur {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(10, 10, 14, 0.78);
+  border: 2px solid var(--bord);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 9px;
+}
+
+.fleche {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  padding: 14px 10px;
+}
+
+#fleche-gauche { left: 10px; }
+#fleche-droite { right: 10px; }
+
+/* --------------------------------------------------- barre de rebirb */
+#barre-rebirb {
+  position: absolute;
+  left: 10px;
+  bottom: 12px;
+  width: 340px;
+  max-width: calc(100% - 20px);
+  background: rgba(10, 10, 14, 0.78);
+  border: 2px solid var(--bord);
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 8px;
+  line-height: 1.6;
+}
+
+#barre-rebirb-fond {
+  height: 10px;
+  border: 2px solid var(--bord);
+  border-radius: 4px;
+  background: #000;
+  overflow: hidden;
+}
+
+#barre-rebirb-fill {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width 0.2s;
+}
+
+/* --------------------------------------------------------- boutons bas */
+#boutons-bas {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  gap: 6px;
+}
+
+.btn-bas {
+  font-size: 8px;
+}
+
+/* -------------------------------------------------------------- toasts */
+#toasts {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.toast {
+  background: rgba(10, 10, 14, 0.9);
+  border: 2px solid var(--accent);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 9px;
+  animation: toast-entree 0.2s ease-out;
+  white-space: nowrap;
+}
+
+.toast.sortie {
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+
+@keyframes toast-entree {
+  from { transform: translateY(8px); opacity: 0; }
+}
+
+/* ---------------------------------------------------------- infobulle */
+#infobulle {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 10, 14, 0.9);
+  border: 2px solid var(--accent);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 9px;
+  line-height: 1.7;
+  white-space: pre-line;
+  text-align: center;
+  pointer-events: none;
+  max-width: 70%;
+}
+
+/* ---------------------------------------------------------- la pêche */
+#peche-ui {
+  position: absolute;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+#peche-statut {
+  background: rgba(10, 10, 14, 0.85);
+  border: 2px solid var(--bord);
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 10px;
+}
+
+#peche-niveau {
+  background: rgba(10, 10, 14, 0.85);
+  border: 2px solid var(--bord);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 8px;
+  opacity: 0.85;
+}
+
+/* ---------------------------------------------------------- mikudex */
+.ligne-dex {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 2px solid var(--bord);
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: var(--carte);
+}
+
+.dex-nom {
+  font-size: 9px;
+}
+
+.dex-detail {
+  font-size: 7px;
+  opacity: 0.7;
+}
+
+.ligne-chateau {
+  font-size: 9px;
+  text-align: center;
+  line-height: 1.8;
+  text-transform: none;
+}
+
+/* --------------------------------------------------------------- debug */
+#debug {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  padding: 6px 10px;
+  font-size: 8px;
+  border-radius: 4px;
+}
+
+.cache {
+  display: none !important;
+}
+
+/* ------------------------------------------------------------- panneau */
+#ui-panel {
+  width: 380px;
+  overflow-y: auto;
+  background: var(--panneau);
+  border-left: 4px solid var(--bord);
+  padding: 14px;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+#ui-panel h1 {
+  font-size: 14px;
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.onglets {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.onglet {
+  flex: 1;
+  position: relative;
+  font-size: 7px;
+  padding: 8px 2px;
+}
+
+.onglet.actif {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  background: var(--rouge);
+  color: #fff;
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  font-size: 8px;
+  line-height: 14px;
+  text-align: center;
+}
+
+.sous-onglets {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.sous-onglet {
+  flex: 1;
+  position: relative;
+  font-size: 8px;
+}
+
+.sous-onglet.actif {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ---- cartes d'amélioration ---- */
+.carte {
+  border: 2px solid var(--bord);
+  border-radius: 6px;
+  background: var(--carte);
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.carte-haut {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.carte-nom {
+  color: var(--accent);
+  font-size: 9px;
+}
+
+.carte-niveau {
+  font-size: 7px;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+.carte-desc {
+  font-size: 7px;
+  opacity: 0.75;
+  margin-bottom: 6px;
+}
+
+.carte-valeurs {
+  font-size: 9px;
+  margin-bottom: 8px;
+}
+
+.carte-achats {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-achat {
+  flex: 1;
+}
+
+/* ---- vue rebirb ---- */
+.vue-rebirb h2 {
+  font-size: 12px;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+.rebirb-explication {
+  font-size: 8px;
+  opacity: 0.8;
+  margin-bottom: 12px;
+  text-transform: none;
+}
+
+.rebirb-ligne {
+  font-size: 8px;
+  margin-bottom: 8px;
+}
+
+.btn-rebirb {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+}
+
+.footer-panneau {
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 2px solid var(--bord);
+  font-size: 7px;
+  opacity: 0.6;
+}
+
+/* --------------------------------------------------------------- modal */
+#modal-fond {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+#modal {
+  background: var(--panneau);
+  border: 4px solid var(--bord);
+  border-radius: 8px;
+  padding: 18px;
+  width: 420px;
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 9px;
+}
+
+#modal h2 {
+  font-size: 12px;
+  color: var(--accent);
+  text-align: center;
+}
+
+.ligne-modal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.ligne-modal input[type='range'] {
+  flex: 1;
+}
+
+.ligne-modal .btn-modal {
+  flex: 1;
+}
+
+.zone-json {
+  font-family: monospace;
+  font-size: 10px;
+  background: #000;
+  color: var(--texte);
+  border: 2px solid var(--bord);
+  border-radius: 4px;
+  padding: 6px;
+  resize: vertical;
+  text-transform: none;
+}
+
+.btn-danger {
+  border-color: var(--rouge);
+  color: var(--rouge);
+}
+
+/* ------------------------------------------- créateur de personnage */
+#ecran-perso {
+  position: fixed;
+  inset: 0;
+  background: var(--fond);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+#ecran-perso h1 {
+  font-size: 16px;
+  color: var(--accent);
+}
+
+.champ-nom {
+  font-family: inherit;
+  font-size: 12px;
+  text-transform: uppercase;
+  background: #000;
+  color: var(--texte);
+  border: 3px solid var(--bord);
+  border-radius: 6px;
+  padding: 12px 16px;
+  text-align: center;
+  width: 320px;
+  max-width: 90%;
+}
+
+.champ-nom:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.liste-persos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  max-width: 900px;
+}
+
+.carte-perso {
+  border: 3px solid var(--bord);
+  border-radius: 8px;
+  background: var(--carte);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 190px;
+}
+
+.carte-perso.selectionnable {
+  cursor: pointer;
+}
+
+.carte-perso.choisi {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.perso-image {
+  width: 108px;
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.perso-nom {
+  font-size: 10px;
+  color: var(--accent);
+  text-align: center;
+}
+
+.perso-resume {
+  font-size: 8px;
+  opacity: 0.75;
+  text-align: center;
+}

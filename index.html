@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b0b0f" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icone-192.png" type="image/png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <title>Chléatoune</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="jeu">
+      <div id="game-wrap">
+        <canvas id="game-area"></canvas>
+        <div id="hud"></div>
+        <button id="btn-auto" class="btn">AUTO : OFF</button>
+        <div id="barre-xp">
+          <span id="barre-xp-niveau"></span>
+          <div id="barre-xp-fond"><div id="barre-xp-fill"></div></div>
+        </div>
+        <div id="barre-pv">
+          <div id="barre-pv-fond"><div id="barre-pv-fill"></div></div>
+          <span id="barre-pv-texte"></span>
+        </div>
+        <div id="zone-indicateur"></div>
+        <button id="fleche-gauche" class="btn fleche">&#10094;</button>
+        <button id="fleche-droite" class="btn fleche">&#10095;</button>
+        <div id="barre-rebirb">
+          <div id="barre-rebirb-texte"></div>
+          <div id="barre-rebirb-fond"><div id="barre-rebirb-fill"></div></div>
+        </div>
+        <div id="boutons-bas"></div>
+        <div id="infobulle" class="cache"></div>
+        <div id="peche-ui" class="cache">
+          <div id="peche-statut"></div>
+          <div id="peche-niveau"></div>
+        </div>
+        <div id="toasts"></div>
+        <div id="debug" class="cache"></div>
+      </div>
+      <aside id="ui-panel"></aside>
+    </div>
+    <div id="modal-fond" class="cache">
+      <div id="modal"></div>
+    </div>
+    <div id="ecran-perso" class="cache"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
