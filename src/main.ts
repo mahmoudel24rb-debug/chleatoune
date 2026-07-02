@@ -67,7 +67,7 @@ import {
 import { ajouterToast } from './ui/toasts';
 import { initCreation } from './ui/creation';
 import { migrerVersProfils } from './systems/profils';
-import { initCloud, majCloud } from './systems/cloud';
+import { initBeaconCloud, initCloud, majCloud } from './systems/cloud';
 
 // ---------------------------------------------------------------- setup
 migrerVersProfils(); // l'ancienne sauvegarde unique devient un personnage
@@ -87,6 +87,7 @@ appliquerGainsHorsLigne();
 centrerCamera(birb.x, birb.y, ecran.largeur, ecran.hauteur);
 initCreation(); // premier lancement : écran de création de personnage
 void initCloud(); // sauvegarde cloud (active seulement une fois déployé)
+initBeaconCloud(); // dernière synchro garantie à la fermeture de l'onglet
 
 // PWA : le service worker rend le jeu installable et jouable hors-ligne
 if ('serviceWorker' in navigator && !import.meta.env.DEV) {

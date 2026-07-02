@@ -85,3 +85,22 @@ export function majCloud(): void {
   dernierePoussee = maintenant;
   void pousserCloud();
 }
+
+/** À la fermeture de l'onglet : dernière poussée garantie (sendBeacon
+ *  survit à la fermeture, contrairement à un fetch classique) — pour
+ *  pouvoir reprendre immédiatement sur un autre appareil. */
+function pousserALaFermeture(): void {
+  const code = codeSync();
+  if (!code || !cloudDisponible()) return;
+  const corps = new Blob([JSON.stringify({ code, donnees: JSON.stringify(state.save) })], {
+    type: 'application/json',
+  });
+  navigator.sendBeacon(URL_API, corps);
+}
+
+export function initBeaconCloud(): void {
+  window.addEventListener('beforeunload', pousserALaFermeture);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') pousserALaFermeture();
+  });
+}
