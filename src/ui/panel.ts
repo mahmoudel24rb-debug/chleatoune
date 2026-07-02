@@ -165,7 +165,7 @@ function construireVueRebirb(): HTMLElement {
     el(
       'p',
       'rebirb-explication',
-      `Recommence ton envol : ${THEME.monnaies.popcorn.nom.toLowerCase()} et améliorations repartent à zéro, mais tu gagnes des ${THEME.prestige.nom.toLowerCase()} permanentes.`
+      `Recouds le fil de ton aventure : ${THEME.monnaies.popcorn.nom.toLowerCase()} et améliorations repartent à zéro, mais tu gagnes des ${THEME.prestige.nom.toLowerCase()} permanentes.`
     )
   );
   const cycleEl = el('div', 'rebirb-ligne');

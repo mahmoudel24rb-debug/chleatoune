@@ -73,7 +73,7 @@ export function resumeProfil(id: string): string {
     const brut = localStorage.getItem(`birblike_save_${id}`);
     if (!brut) return 'NOUVELLE PARTIE';
     const save = JSON.parse(brut);
-    return `NIV. ${save.heros?.niveau ?? 1} — ${save.rebirbs ?? 0} REBIRB${(save.rebirbs ?? 0) > 1 ? 'S' : ''}`;
+    return `NIV. ${save.heros?.niveau ?? 1} — ${save.rebirbs ?? 0} RECOUTURE${(save.rebirbs ?? 0) > 1 ? 'S' : ''}`;
   } catch {
     return '';
   }

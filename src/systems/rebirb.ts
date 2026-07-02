@@ -1,6 +1,6 @@
 // Le prestige (plan 06) : tout recommencer contre des plumes permanentes.
 
-import { MONNAIES } from '../data/config';
+import { MONNAIES, THEME } from '../data/config';
 import { AMELIORATIONS } from '../data/upgrades';
 import { plumesGagnees, seuilRebirb } from '../data/progression';
 import { recalculerStats, state } from '../core/state';
@@ -33,7 +33,7 @@ export function faireRebirb(): boolean {
 
   enregistrerGain('plume', gain);
   sons.rebirb();
-  ajouterToast(`REBIRB ! +${gain} PLUME${gain > 1 ? 'S' : ''} 🎉`);
+  ajouterToast(`${THEME.prestige.verbe} ! +${gain} PLUME${gain > 1 ? 'S' : ''} ✂🎉`);
   sauvegarder();
   return true;
 }

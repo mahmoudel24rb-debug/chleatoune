@@ -90,7 +90,7 @@ AMELIORATIONS.push(
     id: 'p_doughcat',
     arbre: 'popcorn',
     nom: 'DOUGHCAT',
-    desc: 'Un chat-brioche ramasse pour toi. Survit au rebirb.',
+    desc: 'Un chat-brioche ramasse pour toi. Survit à la recouture.',
     niveauMax: 4,
     coutBase: 100,
     croissance: 3,

@@ -25,7 +25,8 @@ export function autoDebloque(rebirbs: number): boolean {
 }
 
 export function ordinal(n: number): string {
-  return n === 1 ? '1ER' : `${n}E`;
+  // féminin : « 1RE RECOUTURE », « 2E RECOUTURE »…
+  return n === 1 ? '1RE' : `${n}E`;
 }
 
 export function prochainDeblocage(rebirbs: number): string {

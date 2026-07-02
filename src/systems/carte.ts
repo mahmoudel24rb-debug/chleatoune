@@ -97,7 +97,7 @@ export function amenagerCartes(): void {
         }
         if (state.save.plumes < t.cout) {
           sons.refus();
-          ajouterToast(`IL TE FAUT ${t.cout} ${THEME.prestige.nom} (REBIRB, COFFRES, PÊCHE…)`);
+          ajouterToast(`IL TE FAUT ${t.cout} ${THEME.prestige.nom} (RECOUTURE, COFFRES, PÊCHE…)`);
           return;
         }
         state.save.plumes -= t.cout;

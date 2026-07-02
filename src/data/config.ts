@@ -15,8 +15,9 @@ export const MONNAIES: MonnaieId[] = ['popcorn', 'graine', 'brindille', 'minerai
 export const THEME = {
   titre: 'CHLÉATOUNE',
   heros: 'CHLÉATOUNE',
-  /** La monnaie de prestige, gagnée à chaque rebirb. */
-  prestige: { nom: 'PLUMES', verbe: 'REBIRB', couleur: '#a8d8ff' },
+  /** La monnaie de prestige, gagnée à chaque recouture (le prestige :
+   *  Gwen est une poupée couturière, elle recoud le fil de sa vie). */
+  prestige: { nom: 'PLUMES', verbe: 'RECOUTURE', couleur: '#a8d8ff' },
   /** La monnaie rare du désert. */
   dore: { nom: 'SMISKI DORÉ', pluriel: 'SMISKI DORÉS', couleur: '#f2d16b' },
   /** Le message de la salle du château (donjon). PERSONNALISE-MOI :
