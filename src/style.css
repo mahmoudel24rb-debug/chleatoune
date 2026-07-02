@@ -678,8 +678,10 @@ canvas#game-area {
 }
 
 .perso-image {
-  width: 108px;
-  height: auto;
+  height: 96px;
+  width: auto;
+  max-width: 170px;
+  object-fit: contain;
   image-rendering: pixelated;
 }
 

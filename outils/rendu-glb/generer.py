@@ -15,9 +15,12 @@ from playwright.sync_api import sync_playwright
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 
-def modele_heroine(glb, prefixe, clip_course="Run_Base"):
-    """Config commune aux skins de l'héroïne (même rig ; le clip de
-    course s'appelle Run_Base ou Run selon les exports)."""
+def modele_heroine(glb, prefixe, clip_course="Run_Base",
+                   clip_attaque="Cast_Cycle", temps_attaque=(0.15, 0.55)):
+    """Config commune aux skins jouables. Les noms de clips varient selon
+    les exports (Run vs Run_Base) et le style d'attaque selon le
+    personnage (Gwen : Cast_Cycle à l'épée ; Sett : Cast_Animation aux
+    poings)."""
     return {
         "glb": glb,
         "prefixe": prefixe,
@@ -27,8 +30,8 @@ def modele_heroine(glb, prefixe, clip_course="Run_Base"):
             ("idle", "Idle_Base", 0.53),
             ("marche1", clip_course, 0.18),
             ("marche2", clip_course, 0.55),
-            ("attaque1", "Cast_Cycle", 0.15),
-            ("attaque2", "Cast_Cycle", 0.55),
+            ("attaque1", clip_attaque, temps_attaque[0]),
+            ("attaque2", clip_attaque, temps_attaque[1]),
         ],
         "yaws": {"face": 0, "dos": 180, "profil": 270},
     }
@@ -36,9 +39,11 @@ def modele_heroine(glb, prefixe, clip_course="Run_Base"):
 
 MODELES = [
     modele_heroine("chibi_gwen.glb", "gwen", "Run"),
-    # chibi_soul_fighter_gwen.glb : abandonné (accessoires "garés" trop
-    # agressivement, la vue de dos sort vide malgré les contournements)
+    modele_heroine("chibi_soul_fighter_gwen.glb", "soulfighter", "Run"),
     modele_heroine("prestige_chibi_cafe_cuties_gwen.glb", "cafecuties", "Run"),
+    modele_heroine("chibi_sett.glb", "sett", "Run_Base", "Cast_Animation", (0.4, 0.9)),
+    modele_heroine("chibi_heartsteel_sett.glb", "heartsteel", "Run_Base", "Cast_Animation", (0.4, 0.9)),
+    modele_heroine("chibi_spirit_blossom_sett.glb", "spiritblossom", "Run_Base", "Cast_Animation", (0.4, 0.9)),
     {
         "glb": "chibi_crystal_rose_gwen.glb",
         "prefixe": "chleatoune",

@@ -82,33 +82,53 @@
     // ignore la deformation squelettique, on transforme donc chaque sommet
     // par les os (boneTransform) pour couvrir la vraie silhouette animee.
     // Certains modèles « garent » des accessoires cachés très loin du corps
-    // pendant les animations (os déplacés à des milliers d'unités) : on
-    // filtre donc les sommets aberrants par rapport à la pose de repos.
-    let _boiteBind = null;
-    function boiteBind() {
-      if (!_boiteBind) _boiteBind = new THREE.Box3().setFromObject(gltf.scene);
-      return _boiteBind;
-    }
+    // (parfois même en pose de repos) : on cadre donc sur le NUAGE DENSE
+    // de sommets — le corps écrase tout en nombre de points, la médiane
+    // tombe donc dedans, et on rejette ce qui en est trop éloigné.
     const _v = new THREE.Vector3();
-    function boiteScenePosee() {
-      gltf.scene.updateMatrixWorld(true);
-      const bind = boiteBind();
-      const centreBind = bind.getCenter(new THREE.Vector3());
-      const limite = bind.getSize(new THREE.Vector3()).length() * 3 + 1;
-      const box = new THREE.Box3();
+    function pointsSkinnés(pas) {
+      const points = [];
       gltf.scene.traverse((o) => {
         if (o.isSkinnedMesh) {
           o.skeleton.update();
           const pos = o.geometry.attributes.position;
-          for (let i = 0; i < pos.count; i++) {
+          for (let i = 0; i < pos.count; i += pas) {
             _v.fromBufferAttribute(pos, i);
-            o.applyBoneTransform(i, _v); // position skinnée de la pose courante
+            o.applyBoneTransform(i, _v);
             _v.applyMatrix4(o.matrixWorld);
-            if (_v.distanceTo(centreBind) < limite) box.expandByPoint(_v);
+            points.push(_v.clone());
           }
-        } else if (o.isMesh && o.visible) {
+        }
+      });
+      return points;
+    }
+
+    function mediane(valeurs) {
+      const triees = [...valeurs].sort((a, b) => a - b);
+      return triees[triees.length >> 1];
+    }
+
+    function boiteScenePosee() {
+      gltf.scene.updateMatrixWorld(true);
+      // 1) centre robuste : médiane par axe d'un échantillon de sommets
+      const echantillon = pointsSkinnés(5);
+      const centre = new THREE.Vector3(
+        mediane(echantillon.map((p) => p.x)),
+        mediane(echantillon.map((p) => p.y)),
+        mediane(echantillon.map((p) => p.z))
+      );
+      // 2) rayon robuste : 8× la distance médiane au centre (le corps et
+      //    son arme rentrent, les accessoires garés au loin non)
+      const limite = Math.max(1, mediane(echantillon.map((p) => p.distanceTo(centre))) * 8);
+      // 3) boîte sur TOUS les sommets proches du nuage dense
+      const box = new THREE.Box3();
+      for (const p of pointsSkinnés(1)) {
+        if (p.distanceTo(centre) < limite) box.expandByPoint(p);
+      }
+      gltf.scene.traverse((o) => {
+        if (o.isMesh && !o.isSkinnedMesh && o.visible) {
           const b = new THREE.Box3().setFromObject(o);
-          if (b.getCenter(new THREE.Vector3()).distanceTo(centreBind) < limite) box.union(b);
+          if (b.getCenter(new THREE.Vector3()).distanceTo(centre) < limite) box.union(b);
         }
       });
       return box;

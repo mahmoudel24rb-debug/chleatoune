@@ -110,7 +110,7 @@ function agrandir(img: HTMLImageElement, facteur: number): HTMLCanvasElement {
 const FACTEUR_PNG = 2; // PNG 114×54 (corps ~54 px) → corps ~108 px à l'écran
 // À incrémenter à chaque régénération des PNG : force le navigateur à
 // recharger les images au lieu de servir son cache.
-const VERSION_SPRITES = 5;
+const VERSION_SPRITES = 6;
 
 function chargerPng(chemin: string, facteur: number, appliquer: (c: HTMLCanvasElement) => void): void {
   const img = new Image();

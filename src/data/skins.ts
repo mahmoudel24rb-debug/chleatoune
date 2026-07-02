@@ -14,4 +14,8 @@ export const SKINS: Skin[] = [
   { id: 'chleatoune', nom: 'ROSE DE CRISTAL', prefixe: 'chleatoune' },
   { id: 'gwen', nom: 'CLASSIQUE', prefixe: 'gwen' },
   { id: 'cafecuties', nom: 'CAFÉ MIGNON', prefixe: 'cafecuties' },
+  { id: 'soulfighter', nom: 'SOUL FIGHTER', prefixe: 'soulfighter' },
+  { id: 'sett', nom: 'SETT', prefixe: 'sett' },
+  { id: 'heartsteel', nom: 'HEARTSTEEL', prefixe: 'heartsteel' },
+  { id: 'spiritblossom', nom: 'FLEUR SPIRITUELLE', prefixe: 'spiritblossom' },
 ];
