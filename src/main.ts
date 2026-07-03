@@ -83,6 +83,7 @@ import {
 } from './ui/overlays';
 import { ajouterToast } from './ui/toasts';
 import { initCreation } from './ui/creation';
+import { basculerModeDev } from './ui/dev';
 import { migrerVersProfils } from './systems/profils';
 import { faireRebirb } from './systems/rebirb';
 import { cloudDisponible, initBeaconCloud, initCloud, majCloud, pousserCloud } from './systems/cloud';
@@ -144,7 +145,10 @@ surTouche('KeyM', () => {
   // le Mercier ne reçoit que dans son Antre (plan 11 §6)
   if (jeu.mode === 'antre') basculerMercier();
 });
-surTouche('F1', () => debugEl.classList.toggle('cache'));
+surTouche('F1', () => {
+  debugEl.classList.toggle('cache');
+  basculerModeDev(!debugEl.classList.contains('cache'));
+});
 
 // ---------------------------------------------------------------- update
 let accPanneau = 0;

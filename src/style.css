@@ -724,3 +724,30 @@ canvas#game-area {
   cursor: pointer;
   text-align: left;
 }
+
+/* ---- mode dev (F1, protégé par mot de passe) ---- */
+.dev-panneau {
+  position: fixed;
+  left: 10px;
+  bottom: 96px;
+  z-index: 60;
+  background: rgba(20, 15, 28, 0.94);
+  border: 2px solid #f2d16b;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 9px;
+  max-width: 340px;
+}
+.dev-titre { color: #f2d16b; }
+.dev-ligne { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.dev-champ {
+  background: #1a1420;
+  border: 1px solid #3a2d47;
+  color: #e8e8f0;
+  font: inherit;
+  padding: 5px;
+}
+.dev-nombre { width: 84px; }
+.dev-btn { font-size: 8px; padding: 6px 8px; }
