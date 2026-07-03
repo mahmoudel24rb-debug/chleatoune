@@ -15,6 +15,10 @@ export interface Monstre {
   boss: boolean;
   /** élite : ×5 PV, halo pulsant, lâche un coffre (plan 10 §1) */
   elite: boolean;
+  /** archimonstre : rare, nommé, doré (plan 14 §3) */
+  archi: boolean;
+  /** défi DANS L'ORDRE : ① ② ③ au-dessus de la tête (plan 14 §1) */
+  couronne?: number;
   /** Cooldown avant sa prochaine attaque de contact (s). */
   tAttaque: number;
   /** Temps restant avant de changer de direction d'errance (s). */

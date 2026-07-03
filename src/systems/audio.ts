@@ -55,4 +55,17 @@ export const sons = {
     bip(880, 0.08, 'square', 0.12);
   },
   boss: () => [98, 82, 65, 98].forEach((f, i) => bip(f, 0.3, 'sawtooth', i * 0.18, 0.3)),
+  // l'archimonstre s'annonce à l'oreille avant l'œil (plan 14 §3)
+  archi: () => [880, 1109, 880, 1319].forEach((f, i) => bip(f, 0.09, 'triangle', i * 0.08)),
+  // bandeau doré des succès (plan 16 §1)
+  succes: () => [659, 784, 988, 1319].forEach((f, i) => bip(f, 0.11, 'triangle', i * 0.06)),
+  // sons de pêche v2 (plan 17) : plic (mordille) ≠ plouf grave (plongeon)
+  // ≠ vibration aiguë (tremblement de la lutte)
+  plic: () => bip(980 + Math.random() * 120, 0.05, 'sine', 0, 0.12),
+  plouf: () => {
+    bip(160, 0.18, 'sine', 0, 0.3);
+    bip(90, 0.22, 'sine', 0.05, 0.25);
+  },
+  tension: () => bip(1400, 0.07, 'sawtooth', 0, 0.08),
+  casse: () => [400, 240, 130].forEach((f, i) => bip(f, 0.12, 'sawtooth', i * 0.06, 0.2)),
 };

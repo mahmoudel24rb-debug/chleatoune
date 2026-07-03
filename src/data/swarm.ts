@@ -91,6 +91,33 @@ export const SWARM = {
     enrage: { seuil: 0.25, vitesse: 1.3, cadence: 1.5 }, // sous 25 % PV
   },
 
+  // ---- plan 14 : défis, malédictions, archimonstres
+  defis: {
+    mult: 1.4, // ×dorés et ×XP de la porte si le défi est réussi
+    rafaleN: 5, // « rafale » : N monstres…
+    rafaleSec: 3, // …en moins de N secondes
+    eclairSec: 20, // « éclair » : une vague finie en moins de ça
+    bougeotteSec: 2, // « bougeotte » : immobile max autorisé
+  },
+  maledictions: {
+    plafond: 2.5, // plafond ABSOLU du mult (leçon des idoles de Dofus)
+    presseVitesse: 1.3,
+    filTendu: 0.65, // × durée des télégraphes
+    meuteBudget: 1.25,
+    pointesDegats: 1.5,
+    verrePV: 0.75,
+  },
+  archi: {
+    chance: 0.015, // proba de promotion à chaque creerMonstre
+    multPV: 4,
+    multDegats: 1.25,
+    multXp: 5,
+    multButin: 6,
+    echelle: 1.25,
+    plumesPremiere: 2, // première victoire sur CHAQUE archi
+    plumesCollection: 25, // la collection complète
+  },
+
   // ---- méta-progression (plan 11)
   croissanceCoutParchemin: 1.35,
   croissanceCoutSort: 1.45,

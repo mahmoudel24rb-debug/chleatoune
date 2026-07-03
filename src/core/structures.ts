@@ -249,6 +249,23 @@ export const SPRITE_TAPIS = creerSprite(
   4
 );
 
+// ---- trophée doré du bestiaire complet (plan 14 §3), mur de l'Antre
+export const SPRITE_TROPHEE = creerSprite(
+  [
+    '..GGGGGG..',
+    '.G.gGGg.G.',
+    '.G.GGGG.G.',
+    '..gGGGGg..',
+    '...GGGG...',
+    '....GG....',
+    '....gg....',
+    '...GGGG...',
+    '..GGGGGG..',
+  ],
+  { G: '#f2d16b', g: '#d9a94e' },
+  4
+);
+
 // ------------------------------------------------------------- ponton
 export const SPRITE_PONTON = creerSprite(
   [

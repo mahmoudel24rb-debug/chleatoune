@@ -10,7 +10,8 @@ import { state } from '../core/state';
 import { el, formatNombre } from '../core/utils';
 import { SPRITES_MONNAIES, SPRITE_PLUME, SPRITE_SMISKI_DORE } from '../core/sprites';
 import { taux } from '../systems/economy';
-import { getPorte, getPv, getVague } from '../systems/donjon';
+import { getMaledictionsActives, getPorte, getPv, getVague, pvMaxCourant } from '../systems/donjon';
+import { defiCourant } from '../systems/defis';
 import { sons } from '../systems/audio';
 import { sauvegarder } from '../systems/save';
 import { ajouterToast } from './toasts';
@@ -181,13 +182,22 @@ export function majHud(): void {
   if (jeu.mode === 'donjon') {
     const porte = getPorte();
     const vague = getVague();
+    // ligne défi (plan 14 §1) : ✓ tant que tenu, ✗ dès l'échec
+    const defi = defiCourant();
+    const texteDefi = defi
+      ? ` · 🎯 ${defi.nom} ${defi.rate ? '✗' : defi.accompli ? '✓ !' : '✓'}`
+      : '';
+    const maledictions = getMaledictionsActives();
+    const texteMaledictions = maledictions.length > 0 ? ` · ☠×${maledictions.length}` : '';
     setTexte(
       zoneIndicateur,
-      porte
+      (porte
         ? porte.sansFin
           ? `∞ ${porte.nom} — VAGUE ${vague.index + 1}`
           : `⚔ ${porte.nom} — VAGUE ${Math.min(vague.index + 1, vague.total)}/${vague.total}`
-        : '⚔ DONJON'
+        : '⚔ DONJON') +
+        texteDefi +
+        texteMaledictions
     );
   } else if (jeu.mode === 'antre') {
     setTexte(zoneIndicateur, `🚪 L'ANTRE — PORTES : ${Math.min(save.swarm.porteMax, 12)}/12`);
@@ -217,8 +227,9 @@ export function majHud(): void {
     if (xpFill.style.width !== pctXp) xpFill.style.width = pctXp;
 
     const pv = getPv();
-    setTexte(pvTexte, `${formatNombre(Math.ceil(pv), 0)}/${formatNombre(state.stats.pvMax, 0)} PV`);
-    const pctPv = `${((pv / state.stats.pvMax) * 100).toFixed(1)}%`;
+    const pvMax = pvMaxCourant(); // VERRE FILÉ réduit le max en donjon
+    setTexte(pvTexte, `${formatNombre(Math.ceil(pv), 0)}/${formatNombre(pvMax, 0)} PV`);
+    const pctPv = `${((pv / pvMax) * 100).toFixed(1)}%`;
     if (pvFill.style.width !== pctPv) pvFill.style.width = pctPv;
   }
 

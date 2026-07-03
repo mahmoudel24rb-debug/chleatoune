@@ -66,7 +66,9 @@ import {
   majInteractions,
 } from './systems/interactions';
 import { garantirQuetes } from './systems/quetes';
-import { dessinerFx, majFx } from './systems/fx';
+import { ajouterParticules, dessinerFx, majFx } from './systems/fx';
+import { nomArchimonstre } from './data/archimonstres';
+import { SWARM } from './data/swarm';
 import { initAudio } from './systems/audio';
 import { charger, initAutosave, sauvegarder } from './systems/save';
 import { basculerAuto, initHud, majHud } from './ui/hud';
@@ -364,10 +366,31 @@ function dessinerMonde(): void {
       ctx.translate(mx, my + 14);
       if (glb && m.dirX < 0 && vue === 'profil') ctx.scale(-1, 1);
       if (clignote) ctx.filter = 'brightness(2.4) saturate(0.4)';
+      // archimonstre : teinte dorée (plan 14 §3)
+      else if (m.archi) ctx.filter = 'sepia(1) saturate(2.4) hue-rotate(-8deg) brightness(1.2)';
       // étourdi (fin de charge) : le boss vacille — la fenêtre de punition
       if ((m.etourdiT ?? 0) > 0) ctx.rotate(Math.sin(performance.now() / 90) * 0.08);
       ctx.drawImage(sprite, Math.round(-w / 2), Math.round(-h), w, h);
       ctx.restore();
+      // l'archimonstre : particules dorées continues + nom permanent
+      if (m.archi) {
+        if (Math.random() < 0.15) ajouterParticules(m.x, m.y - h / 2, '#f2d16b', 1);
+        ctx.font = '8px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        const nom = nomArchimonstre(m.type.id);
+        const lm = ctx.measureText(nom).width;
+        ctx.fillStyle = 'rgba(10,10,14,0.75)';
+        ctx.fillRect(mx - lm / 2 - 4, my - h - 4, lm + 8, 12);
+        ctx.fillStyle = '#f2d16b';
+        ctx.fillText(nom, mx, my - h + 5);
+      }
+      // défi DANS L'ORDRE : la couronne numérotée ① ② ③ (plan 14 §1)
+      if (m.couronne) {
+        ctx.font = '12px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#f2d16b';
+        ctx.fillText(['①', '②', '③'][m.couronne - 1] ?? '', mx, my - h - 8);
+      }
       const largeurBarre = m.boss ? 56 : 30;
       const yBarre = my + 8 - h;
       ctx.fillStyle = '#1a1420';
@@ -649,4 +672,10 @@ demarrerBoucle(update, render);
     telegraphes: () => getTelegraphes().length,
   },
   rebirb: faireRebirb,
+  debug: {
+    // critère plan 14 : forcer la chance d'archimonstre pour tester
+    archiChance: (x: number) => {
+      SWARM.archi.chance = x;
+    },
+  },
 };

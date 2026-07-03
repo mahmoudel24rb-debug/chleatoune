@@ -82,6 +82,11 @@ export interface SaveData {
   evolutions: Record<string, boolean>;
   /** biomeId → unités de compagnons (plan 13) — PERMANENT */
   compagnons: Record<string, number>;
+  // ---- plan 14 (additif, pas de bump de version) ----
+  /** typeId → victoires sur son archimonstre */
+  bestiaire: Record<string, number>;
+  /** récompense de collection déjà versée */
+  bestiaireComplet: boolean;
 }
 
 function zeros(): Record<MonnaieId, number> {
@@ -123,6 +128,8 @@ export function defautsSave(): SaveData {
     sorts: {},
     evolutions: {},
     compagnons: {},
+    bestiaire: {},
+    bestiaireComplet: false,
   };
 }
 

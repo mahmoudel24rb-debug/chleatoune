@@ -17,6 +17,8 @@ export interface Projectile {
   degats: number;
   /** distance restante avant extinction (px) */
   reste: number;
+  /** camp monstre : d'où vient le tir (défis du plan 14) */
+  origine: 'tir' | 'volee' | 'anneau' | 'sort';
 }
 
 const TAILLE_POOL = 128;
@@ -32,6 +34,7 @@ export const PROJECTILES: Projectile[] = Array.from({ length: TAILLE_POOL }, () 
   couleur: '#ffffff',
   degats: 0,
   reste: 0,
+  origine: 'tir',
 }));
 
 export function tirerProjectile(
@@ -43,12 +46,14 @@ export function tirerProjectile(
   portee: number,
   degats: number,
   couleur: string,
-  taille = 4
+  taille = 4,
+  origine: 'tir' | 'volee' | 'anneau' | 'sort' = camp === 'sort' ? 'sort' : 'tir'
 ): void {
   const p = PROJECTILES.find((q) => !q.actif);
   if (!p) return; // pool plein : on saute le tir plutôt que d'allouer
   p.actif = true;
   p.camp = camp;
+  p.origine = origine;
   p.x = x;
   p.y = y;
   p.vx = Math.cos(angle) * vitesse;

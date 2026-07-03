@@ -37,6 +37,18 @@ import {
   type Compagnon,
 } from './compagnons';
 import { majSorts, viderSorts } from './sorts';
+import {
+  arreterDefi,
+  couronneSuivante,
+  defiReussi,
+  demarrerDefi,
+  evenementDefi,
+  mortPourDefi,
+  tickDefi,
+  vagueFiniePourDefi,
+} from './defis';
+import { scoreMaledictions } from '../data/maledictions';
+import { collectionComplete, nomArchimonstre } from '../data/archimonstres';
 import { progresserQuete, signalerDonjonTermine } from './quetes';
 import { ajouterParticules, ajouterTexteFlottant } from './fx';
 import { sons } from './audio';
@@ -73,6 +85,32 @@ let tGrace = 0; // invulnérabilité après un coup (SWARM.graceContactSec)
 let chrono = 0;
 let degatsPris = 0;
 let doresRamasses = 0;
+let xpPorte = 0; // XP gagnée dans la porte (base des bonus défi/malédictions)
+let vagueDebut = 0; // chrono du début de la vague (défi ÉCLAIR)
+let archiCetteVague = false; // jamais deux archis dans la même vague
+let archisVaincus: string[] = []; // pour le récap de fin
+let dernierePos = { x: 0, y: 0 }; // suivi d'immobilité (défi BOUGEOTTE)
+
+// malédictions du run (plan 14 §2) — choisies dans le modal de porte,
+// verrouillées une fois entré (comme les idoles : on finit avec)
+let maledictions: string[] = [];
+
+export function setMaledictionsPorte(ids: string[]): void {
+  maledictions = [...ids];
+}
+
+export function getMaledictionsActives(): string[] {
+  return maledictions;
+}
+
+function maudit(id: string): boolean {
+  return maledictions.includes(id);
+}
+
+/** PV max effectifs du donjon (VERRE FILÉ : −25 %). */
+export function pvMaxCourant(): number {
+  return Math.ceil(state.stats.pvMax * (maudit('verre') ? SWARM.maledictions.verrePV : 1));
+}
 
 export function enDonjon(): boolean {
   return jeu.mode === 'donjon';
@@ -197,11 +235,17 @@ function genererComposition(budget: number, vague: number): CompositionEntree[] 
 
 function compositionVague(index: number): CompositionEntree[] {
   if (!porte) return [];
+  const multMeute = maudit('meute') ? SWARM.maledictions.meuteBudget : 1;
   const scenarisee = porte.vaguesScenarisees?.[index];
-  if (scenarisee) return scenarisee;
-  const budget = porte.sansFin
-    ? budgetVague(12, Math.min(index, 3), 99) * Math.pow(SWARM.sansFin.budget, vagueSansFin)
-    : budgetVague(porte.niveau, index, porte.nbVagues);
+  if (scenarisee && multMeute === 1) return scenarisee;
+  if (scenarisee) {
+    // LA MEUTE gonfle aussi les vagues scénarisées (+25 % sur le compte)
+    return scenarisee.map((e) => ({ ...e, nombre: Math.ceil(e.nombre * multMeute) }));
+  }
+  const budget =
+    (porte.sansFin
+      ? budgetVague(12, Math.min(index, 3), 99) * Math.pow(SWARM.sansFin.budget, vagueSansFin)
+      : budgetVague(porte.niveau, index, porte.nbVagues)) * multMeute;
   return genererComposition(budget, index);
 }
 
@@ -219,10 +263,26 @@ function creerMonstre(typeId: string, elite: boolean, boss = false): Monstre {
   const y = clamp(birb.y + Math.sin(angle) * rayon, marge, CONFIG.monde.hauteur - marge);
 
   const defBoss = boss && porte ? bossDef(porte.bossId) : null;
+
+  // promotion en ARCHIMONSTRE (plan 14 §3) : jamais un boss, jamais la
+  // vague 1 de la porte 1, jamais deux dans la même vague
+  const A = SWARM.archi;
+  const archi =
+    !boss &&
+    !elite &&
+    !archiCetteVague &&
+    !(porte?.niveau === 1 && vagueIndex === 0) &&
+    Math.random() < A.chance;
+  if (archi) {
+    archiCetteVague = true;
+    sons.archi(); // l'oreille prévient avant l'œil
+    ajouterToast(`👑 ${nomArchimonstre(type.id)} !`);
+  }
+
   const pvMax = Math.ceil(
     defBoss
       ? SWARM.pvBossBase * SWARM.multBoss * multPVCourant() * defBoss.pv
-      : type.pv * mPV
+      : type.pv * mPV * (archi ? A.multPV : 1)
   );
   return {
     type,
@@ -233,19 +293,25 @@ function creerMonstre(typeId: string, elite: boolean, boss = false): Monstre {
     // boss : « contact ×2 » s'entend du MONSTRE DE BASE (table plan 12 §2),
     // pas du golem qui lui sert de gabarit — sinon ×4 déguisé
     degats: Math.ceil(
-      (boss ? typeMonstre('glouton').degats : type.degats) * mDeg * (boss ? SWARM.multDegatsBoss : 1)
+      (boss ? typeMonstre('glouton').degats : type.degats) *
+        mDeg *
+        (boss ? SWARM.multDegatsBoss : 1) *
+        (archi ? A.multDegats : 1)
     ),
     xp: Math.ceil(
-      type.xp * multPVCourant() * (elite ? SWARM.multEliteButin : 1) * (boss ? 8 : 1)
+      type.xp * multPVCourant() * (elite ? SWARM.multEliteButin : 1) * (boss ? 8 : 1) * (archi ? A.multXp : 1)
     ),
-    butin: Math.ceil(type.butin * multPVCourant() * (elite ? SWARM.multEliteButin : 1)),
+    butin: Math.ceil(
+      type.butin * multPVCourant() * (elite ? SWARM.multEliteButin : 1) * (archi ? A.multButin : 1)
+    ),
     boss,
     elite,
+    archi,
     tAttaque: 0,
     tErrance: 0,
     dirX: 0,
     dirY: 0,
-    echelle: defBoss ? defBoss.echelle : elite ? 1.3 : 1,
+    echelle: defBoss ? defBoss.echelle : elite ? 1.3 : archi ? A.echelle : 1,
     tTir: type.tir ? type.tir.cooldown * (0.4 + Math.random() * 0.6) : 0,
     viseT: 0,
     clignoteT: 0,
@@ -273,6 +339,12 @@ function lancerVague(index: number): void {
       fileAttente.push({ type: entree.type, elite: entree.elite === true });
     }
   }
+  // COUR D'ÉLITE : +1 élite par vague (plan 14 §2)
+  if (maudit('elite')) {
+    fileAttente.push({ type: index % 2 === 1 ? 'golem' : 'spectre', elite: true });
+  }
+  archiCetteVague = false;
+  vagueDebut = chrono;
   tSpawn = 0;
   const derniere = !porte.sansFin && index === porte.nbVagues - 1;
   const bossSansFin =
@@ -294,7 +366,9 @@ export function entrerDonjon(p: PorteDef): void {
   jeu.mode = 'donjon';
   // sprites GLB chargés à l'entrée, jamais au boot (plan 10 §6)
   prechargerDonjon(MONSTRES.map((m) => m.id), p.bossId);
-  pv = state.stats.pvMax;
+  // malédictions : uniquement sur une porte déjà terminée, jamais la
+  // sans-fin (elle scale déjà) — le modal fait la police, ceci re-vérifie
+  if (p.sansFin || (state.save.swarm.termines[p.niveau] ?? 0) === 0) maledictions = [];
   birb.x = CONFIG.monde.largeur / 2;
   birb.y = CONFIG.monde.hauteur / 2;
   monstres.length = 0;
@@ -308,6 +382,11 @@ export function entrerDonjon(p: PorteDef): void {
   chrono = 0;
   degatsPris = 0;
   doresRamasses = 0;
+  xpPorte = 0;
+  archisVaincus = [];
+  dernierePos = { x: birb.x, y: birb.y };
+  pv = pvMaxCourant();
+  demarrerDefi(p, getEscouade().length, bossDef(p.bossId).patterns);
   lancerVague(0);
   ajouterToast(`⚔ ${p.nom} — VAGUE 1/${p.sansFin ? '∞' : p.nbVagues}`);
 }
@@ -320,6 +399,8 @@ export function sortirDonjon(): void {
   viderProjectiles();
   viderSorts();
   viderEscouade();
+  arreterDefi();
+  maledictions = [];
   porte = null;
   entrerAntre();
 }
@@ -366,9 +447,11 @@ function ouvrirCoffre(c: Coffre): void {
 
 // ----------------------------------------------------------- XP / SP
 
-function gagnerXp(montant: number): void {
+function gagnerXp(montant: number, brut = false): void {
   const heros = state.save.heros;
-  heros.xp += Math.round(montant * state.stats.multXp);
+  const gain = Math.round(brut ? montant : montant * state.stats.multXp);
+  heros.xp += gain;
+  if (enDonjon()) xpPorte += gain;
   let monte = false;
   while (heros.xp >= xpPourNiveau(heros.niveau)) {
     heros.xp -= xpPourNiveau(heros.niveau);
@@ -377,7 +460,7 @@ function gagnerXp(montant: number): void {
     monte = true;
   }
   if (monte) {
-    pv = state.stats.pvMax;
+    pv = pvMaxCourant();
     sons.niveau();
     ajouterToast(`NIVEAU ${heros.niveau} ! +${COMBAT.spParNiveau} SP 🎉`);
     sauvegarder();
@@ -391,7 +474,7 @@ export function acheterCompetence(id: CompetenceId): boolean {
   heros.competences[id] += 1;
   recalculerStats();
   if (id === 'vitalite') pv += COMBAT.pvParPointVitalite;
-  pv = clamp(pv, 0, state.stats.pvMax);
+  pv = clamp(pv, 0, pvMaxCourant());
   sons.achat();
   sauvegarder();
   return true;
@@ -404,7 +487,7 @@ export function reinitialiserCompetences(): void {
   heros.sp += total;
   heros.competences = { vitalite: 0, recuperation: 0, force: 0 };
   recalculerStats();
-  pv = clamp(pv, 0, state.stats.pvMax);
+  pv = clamp(pv, 0, pvMaxCourant());
   sons.achat();
   sauvegarder();
 }
@@ -433,6 +516,23 @@ function victoire(): void {
       porte.niveau === 12 ? '🚪 LE FIL SANS FIN SE DÉVOILE…' : '🚪 UNE NOUVELLE PORTE S’OUVRE…'
     );
   }
+  // ---- bonus défi + malédictions (plan 14) : dorés et XP de la porte
+  // UNIQUEMENT — jamais les smiski, jamais les plumes, jamais multGlobal
+  const resultatDefi = defiReussi();
+  const score = scoreMaledictions(maledictions);
+  const multMaledictions = Math.min(SWARM.maledictions.plafond, 1 + score / 100);
+  const multTotal = (resultatDefi?.reussi ? SWARM.defis.mult : 1) * multMaledictions;
+  let bonusDores = 0;
+  if (multTotal > 1) {
+    bonusDores = Math.round(doresRamasses * (multTotal - 1));
+    const bonusXp = Math.round(xpPorte * (multTotal - 1));
+    if (bonusDores > 0) {
+      crediterDore(bonusDores, birb.x, birb.y - 90);
+      doresRamasses += bonusDores;
+    }
+    if (bonusXp > 0) gagnerXp(bonusXp, true);
+  }
+
   sons.rebirb();
   sauvegarder();
 
@@ -444,6 +544,10 @@ function victoire(): void {
     dores: doresRamasses,
     plumes: premiere ? porteFinie.recompensePremiere.plumes : 0,
     premiere,
+    defi: resultatDefi ?? undefined,
+    maledictions: maledictions.length > 0 ? { n: maledictions.length, mult: multMaledictions } : undefined,
+    bonusDores,
+    archis: [...archisVaincus],
   };
   window.setTimeout(() => {
     if (jeu.mode !== 'donjon' || porte !== porteFinie) return;
@@ -467,11 +571,19 @@ export function graceHeroine(): number {
   return tGrace;
 }
 
+export type SourceDegat = 'contact' | 'skillshot' | 'charge' | 'anneau';
+
 /** Un seul chemin pour blesser l'héroïne (contact, skillshots, flaques). */
-export function blesserHeroine(degats: number): void {
+export function blesserHeroine(degats: number, source: SourceDegat = 'contact'): void {
   if (!enDonjon()) return;
   if (tGrace > 0) return; // fenêtre de grâce : pas de one-burst en foule
   tGrace = SWARM.graceContactSec;
+  if (source === 'skillshot') evenementDefi('degatSkillshot');
+  if (source === 'charge') evenementDefi('degatCharge');
+  if (source === 'anneau') {
+    evenementDefi('degatAnneau');
+    evenementDefi('degatSkillshot');
+  }
   pv -= degats;
   degatsPris += degats;
   ajouterTexteFlottant(birb.x, birb.y - 60, `-${formatNombre(degats, 0)}`, '#ff6b6b');
@@ -486,10 +598,11 @@ function blesserCopie(copie: Compagnon, degats: number): void {
     copie.pv = 0;
     copie.mortT = delaiRespawnChat();
     sons.degat();
+    evenementDefi('compagnonKO');
   }
 }
 
-function mortMonstre(index: number): void {
+function mortMonstre(index: number, source: SourceCoup = 'sort'): void {
   const m = monstres[index];
   monstres.splice(index, 1);
   gagnerXp(m.xp);
@@ -497,10 +610,36 @@ function mortMonstre(index: number): void {
   ajouterParticules(
     m.x,
     m.y,
-    m.boss ? '#f2d16b' : m.elite ? '#ffd94a' : '#b48ae0',
-    m.boss ? 18 : 8
+    m.boss || m.archi ? '#f2d16b' : m.elite ? '#ffd94a' : '#b48ae0',
+    m.boss || m.archi ? 18 : 8
   );
   sons.mortMonstre();
+
+  // défis : rafale, protocole, au_contact
+  mortPourDefi(chrono, m.couronne);
+  if (m.elite && source !== 'melee') evenementDefi('eliteMorteAutre');
+
+  // archimonstre vaincu : bestiaire + récompenses (plan 14 §3)
+  if (m.archi) {
+    const bestiaire = state.save.bestiaire;
+    const premiere = (bestiaire[m.type.id] ?? 0) === 0;
+    bestiaire[m.type.id] = (bestiaire[m.type.id] ?? 0) + 1;
+    archisVaincus.push(nomArchimonstre(m.type.id));
+    if (premiere) {
+      state.save.plumes += SWARM.archi.plumesPremiere;
+      state.save.cumulPlumes += SWARM.archi.plumesPremiere;
+      recalculerStats();
+      ajouterToast(`👑 ${nomArchimonstre(m.type.id)} AU BESTIAIRE ! +${SWARM.archi.plumesPremiere} ${THEME.prestige.nom}`);
+      if (collectionComplete(bestiaire) && !state.save.bestiaireComplet) {
+        state.save.bestiaireComplet = true;
+        state.save.plumes += SWARM.archi.plumesCollection;
+        state.save.cumulPlumes += SWARM.archi.plumesCollection;
+        recalculerStats();
+        ajouterToast(`🏆 LA GRANDE COLLECTIONNEUSE ! +${SWARM.archi.plumesCollection} ${THEME.prestige.nom}`);
+      }
+    }
+    sauvegarder();
+  }
 
   // butin : les élites lâchent un coffre, les autres des dorés
   if (m.elite) {
@@ -513,6 +652,7 @@ function mortMonstre(index: number): void {
 
   // fin de vague ? (plateau vide ET file de spawn vide)
   if (monstres.length === 0 && fileAttente.length === 0 && porte) {
+    vagueFiniePourDefi(chrono - vagueDebut);
     if (porte.sansFin) {
       vagueSansFin += 1;
       state.save.swarm.sansFinRecord = Math.max(state.save.swarm.sansFinRecord, vagueSansFin);
@@ -529,13 +669,20 @@ function mortMonstre(index: number): void {
   }
 }
 
+export type SourceCoup = 'melee' | 'sort' | 'compagnon';
+
 /** Un seul chemin pour blesser un monstre (mêlée, escouade, sorts). */
-export function infligerAuMonstre(m: Monstre, degats: number, couleur = '#ffd94a'): void {
+export function infligerAuMonstre(
+  m: Monstre,
+  degats: number,
+  couleur = '#ffd94a',
+  source: SourceCoup = 'sort'
+): void {
   m.pv -= degats;
   ajouterTexteFlottant(m.x, m.y - 20, `-${formatNombre(degats, 0)}`, couleur);
   if (m.pv <= 0) {
     const index = monstres.indexOf(m);
-    if (index >= 0) mortMonstre(index);
+    if (index >= 0) mortMonstre(index, source);
   }
 }
 
@@ -554,26 +701,28 @@ function majTireur(m: Monstre, cible: { x: number; y: number }, d: number, dt: n
   if (m.tTir <= 0 && d <= tir.portee) {
     // télégraphe figé sur la position ACTUELLE de la cible : c'est ça
     // qui rend l'esquive latérale possible et juste (plan 10, pièges)
-    const degats = Math.ceil(m.degats * tir.multDegats);
+    const multPointes = maudit('pointes') ? SWARM.maledictions.pointesDegats : 1;
+    const multTendu = maudit('fil_tendu') ? SWARM.maledictions.filTendu : 1;
+    const degats = Math.ceil(m.degats * tir.multDegats * multPointes);
     const couleur = m.type.couleur;
     if (tir.projectile === 'ligne') {
       const angle = Math.atan2(cible.y - m.y, cible.x - m.x);
       const origine = { x: m.x, y: m.y };
-      m.viseT = SWARM.telegrapheLigneSec;
+      m.viseT = SWARM.telegrapheLigneSec * multTendu;
       poserTelegrapheLigne(m.x, m.y, angle, tir.portee + 40, couleur, () => {
         if (m.pv <= 0) return;
         tirerProjectile('monstre', origine.x, origine.y, angle, SWARM.projectiles.vitesse, tir.portee + 60, degats, couleur, SWARM.projectiles.taille / 2);
         m.attaqueT = 0.3;
-      });
+      }, SWARM.telegrapheLigneSec * multTendu);
     } else {
       const zx = cible.x;
       const zy = cible.y;
-      m.viseT = SWARM.telegrapheZoneSec;
+      m.viseT = SWARM.telegrapheZoneSec * multTendu;
       poserTelegrapheZone(zx, zy, SWARM.projectiles.rayonZone, couleur, () => {
         if (m.pv <= 0) return;
         poserFlaque(zx, zy, SWARM.projectiles.rayonZone, Math.ceil(degats / 2), couleur);
         m.attaqueT = 0.3;
-      });
+      }, SWARM.telegrapheZoneSec * multTendu);
     }
     m.tTir = tir.cooldown;
     return;
@@ -592,8 +741,9 @@ function majTireur(m: Monstre, cible: { x: number; y: number }, d: number, dt: n
   if (dirX !== 0 || dirY !== 0) {
     m.dirX = dirX;
     m.dirY = dirY;
-    m.x = clamp(m.x + dirX * m.type.vitesse * dt, 30, CONFIG.monde.largeur - 30);
-    m.y = clamp(m.y + dirY * m.type.vitesse * dt, 30, CONFIG.monde.hauteur - 30);
+    const v = m.type.vitesse * (maudit('presse') ? SWARM.maledictions.presseVitesse : 1);
+    m.x = clamp(m.x + dirX * v * dt, 30, CONFIG.monde.largeur - 30);
+    m.y = clamp(m.y + dirY * v * dt, 30, CONFIG.monde.hauteur - 30);
   }
 }
 
@@ -602,10 +752,12 @@ function majTireur(m: Monstre, cible: { x: number; y: number }, d: number, dt: n
 function lancerPattern(m: Monstre, pattern: PatternId): void {
   const centre = centreBirb();
   const B = SWARM.boss;
+  const multPointes = maudit('pointes') ? SWARM.maledictions.pointesDegats : 1;
+  const multTendu = maudit('fil_tendu') ? SWARM.maledictions.filTendu : 1;
   switch (pattern) {
     case 'charge': {
       const angle = Math.atan2(centre.y - m.y, centre.x - m.x);
-      m.viseT = B.charge.viseSec;
+      m.viseT = B.charge.viseSec * multTendu;
       poserTelegrapheLigne(m.x, m.y, angle, B.charge.distance, '#ffd94a', () => {
         if (m.pv <= 0) return;
         m.chargeDist = B.charge.distance;
@@ -613,7 +765,7 @@ function lancerPattern(m: Monstre, pattern: PatternId): void {
         m.chargeDirY = Math.sin(angle);
         m.chargeTouche = false;
         m.attaqueT = 0.4;
-      }, B.charge.viseSec);
+      }, B.charge.viseSec * multTendu);
       break;
     }
     case 'volee': {
@@ -625,10 +777,10 @@ function lancerPattern(m: Monstre, pattern: PatternId): void {
         const oy = m.y;
         poserTelegrapheLigne(m.x, m.y, angle, 340, m.type.couleur, () => {
           if (m.pv <= 0) return;
-          tirerProjectile('monstre', ox, oy, angle, SWARM.projectiles.vitesse, 420, m.degats, '#ffd94a', SWARM.projectiles.taille / 2);
-        });
+          tirerProjectile('monstre', ox, oy, angle, SWARM.projectiles.vitesse, 420, Math.ceil(m.degats * multPointes), '#ffd94a', SWARM.projectiles.taille / 2, 'volee');
+        }, SWARM.telegrapheLigneSec * multTendu);
       }
-      m.viseT = SWARM.telegrapheLigneSec;
+      m.viseT = SWARM.telegrapheLigneSec * multTendu;
       m.attaqueT = 0.4;
       break;
     }
@@ -638,8 +790,8 @@ function lancerPattern(m: Monstre, pattern: PatternId): void {
         const zy = clamp(centre.y + (Math.random() - 0.5) * 2 * B.pluie.rayonDispersion, 40, CONFIG.monde.hauteur - 40);
         poserTelegrapheZone(zx, zy, SWARM.projectiles.rayonZone, m.type.couleur, () => {
           if (m.pv <= 0) return;
-          poserFlaque(zx, zy, SWARM.projectiles.rayonZone, Math.ceil(m.degats / 2), m.type.couleur);
-        });
+          poserFlaque(zx, zy, SWARM.projectiles.rayonZone, Math.ceil((m.degats / 2) * multPointes), m.type.couleur);
+        }, SWARM.telegrapheZoneSec * multTendu);
       }
       m.attaqueT = 0.4;
       break;
@@ -663,7 +815,7 @@ function lancerPattern(m: Monstre, pattern: PatternId): void {
         );
         if (distBreche < B.anneau.breche) continue;
         const angle = (i * Math.PI * 2) / B.anneau.nb;
-        tirerProjectile('monstre', m.x, m.y, angle, SWARM.projectiles.vitesse * 0.8, 520, m.degats, m.type.couleur, SWARM.projectiles.taille / 2);
+        tirerProjectile('monstre', m.x, m.y, angle, SWARM.projectiles.vitesse * 0.8, 520, Math.ceil(m.degats * multPointes), m.type.couleur, SWARM.projectiles.taille / 2, 'anneau');
       }
       m.attaqueT = 0.4;
       break;
@@ -697,7 +849,7 @@ function majBoss(m: Monstre, dt: number): void {
     m.chargeDist = (m.chargeDist ?? 0) - pas;
     if (!m.chargeTouche && dist(m.x, m.y, centre.x, centre.y) < m.type.rayon * m.echelle + 24) {
       m.chargeTouche = true;
-      blesserHeroine(Math.ceil(m.degats * SWARM.boss.charge.multDegats));
+      blesserHeroine(Math.ceil(m.degats * SWARM.boss.charge.multDegats), 'charge');
     }
     if ((m.chargeDist ?? 0) <= 0) m.etourdiT = SWARM.boss.charge.etourdiSec;
     return;
@@ -826,7 +978,7 @@ function majEscouade(dt: number): void {
       } else if (copie.tAttaque <= 0) {
         copie.tAttaque = COMBAT.delaiAttaque * 1.3;
         const mourra = cible.pv <= copie.degats;
-        infligerAuMonstre(cible, copie.degats, '#e8c58a');
+        infligerAuMonstre(cible, copie.degats, '#e8c58a', 'compagnon');
         // CHANCEUX : +10 % butin quand SON coup achève (plan 13 §5)
         if (mourra && copie.role === 'chanceux' && !cible.elite) {
           const bonus = Math.max(1, Math.round((cible.butin / 3) * SWARM.compagnons.bonusChanceux * 10));
@@ -848,17 +1000,24 @@ function majEscouade(dt: number): void {
 // ----------------------------------------------------------- boucle
 
 export function majDonjon(dt: number): void {
-  // Régénération, partout
-  pv = clamp(pv + state.stats.regen * dt, 0, state.stats.pvMax);
+  // Régénération, partout (SANS REPRISE la coupe, en donjon seulement)
+  if (!(enDonjon() && maudit('sans_reprise'))) {
+    pv = clamp(pv + state.stats.regen * dt, 0, enDonjon() ? pvMaxCourant() : state.stats.pvMax);
+  }
   if (!enDonjon() || !porte) return;
   chrono += dt;
   tGrace = Math.max(0, tGrace - dt);
 
   grille.reconstruire(monstres);
 
-  // pause entre deux vagues
+  // suivi du défi : immobilité (bougeotte) et seuil de PV (sans_filet)
+  const immobile = Math.abs(birb.x - dernierePos.x) + Math.abs(birb.y - dernierePos.y) < 1;
+  dernierePos = { x: birb.x, y: birb.y };
+  tickDefi(dt, immobile, pv, pvMaxCourant(), phase === 'combat' || phase === 'boss');
+
+  // pause entre deux vagues (TEMPO INFERNAL la supprime)
   if (phase === 'pause') {
-    tPause -= dt;
+    tPause -= maudit('tempo') ? 999 : dt;
     if (tPause <= 0) {
       if (porte.sansFin) {
         lancerVague(vagueSansFin);
@@ -879,7 +1038,13 @@ export function majDonjon(dt: number): void {
       let paquet = SWARM.spawn.paquet;
       while (paquet-- > 0 && fileAttente.length > 0 && monstres.length < SWARM.capMonstres) {
         const suivant = fileAttente.shift()!;
-        monstres.push(creerMonstre(suivant.type, suivant.elite));
+        const m = creerMonstre(suivant.type, suivant.elite);
+        // défi DANS L'ORDRE : couronner ① ② ③ (vague ≥ 2, plan 14 §1)
+        if (!m.elite && !m.archi) {
+          const couronne = couronneSuivante(porte.sansFin ? vagueSansFin : vagueIndex);
+          if (couronne > 0) m.couronne = couronne;
+        }
+        monstres.push(m);
       }
     }
   }
@@ -899,7 +1064,7 @@ export function majDonjon(dt: number): void {
   // télégraphes, flaques et projectiles vivent même pendant la pause
   // (une flaque posée juste avant la fin de vague brûle encore)
   majTelegraphes(dt, (f) => {
-    if (dist(centre.x, centre.y, f.x, f.y) < f.rayon + 14) blesserHeroine(f.degats);
+    if (dist(centre.x, centre.y, f.x, f.y) < f.rayon + 14) blesserHeroine(f.degats, 'skillshot');
   });
   majProjectiles(dt);
 
@@ -928,7 +1093,8 @@ export function majDonjon(dt: number): void {
       birb.attaqueT = 0.28;
       ajouterParticules(cible.x, cible.y, '#ffffff', 4);
       sons.coup();
-      infligerAuMonstre(cible, Math.round(state.stats.degats * SWARM.coefMelee));
+      evenementDefi('coupMelee');
+      infligerAuMonstre(cible, Math.round(state.stats.degats * SWARM.coefMelee), '#ffd94a', 'melee');
     }
   }
 
@@ -988,8 +1154,9 @@ export function majDonjon(dt: number): void {
       }
       m.dirX = (cibleX - m.x) / d;
       m.dirY = (cibleY - m.y) / d;
-      m.x = clamp(m.x + m.dirX * m.type.vitesse * dt, 30, CONFIG.monde.largeur - 30);
-      m.y = clamp(m.y + m.dirY * m.type.vitesse * dt, 30, CONFIG.monde.hauteur - 30);
+      const vKami = m.type.vitesse * (maudit('presse') ? SWARM.maledictions.presseVitesse : 1);
+      m.x = clamp(m.x + m.dirX * vKami * dt, 30, CONFIG.monde.largeur - 30);
+      m.y = clamp(m.y + m.dirY * vKami * dt, 30, CONFIG.monde.hauteur - 30);
       continue;
     }
 
@@ -1000,8 +1167,8 @@ export function majDonjon(dt: number): void {
       continue;
     }
 
-    // mêlée / tank : poursuite + contact
-    const vitesse = m.type.vitesse;
+    // mêlée / tank : poursuite + contact (PRESSE-BOBINES : +30 %)
+    const vitesse = m.type.vitesse * (maudit('presse') ? SWARM.maledictions.presseVitesse : 1);
     if (d > 1) {
       m.dirX = (cibleX - m.x) / d;
       m.dirY = (cibleY - m.y) / d;
@@ -1039,7 +1206,7 @@ function majProjectiles(dt: number): void {
     if (p.camp === 'monstre') {
       if (dist(p.x, p.y, centre.x, centre.y) < p.taille + 16) {
         p.actif = false;
-        blesserHeroine(p.degats);
+        blesserHeroine(p.degats, p.origine === 'anneau' ? 'anneau' : 'skillshot');
       }
     } else {
       const touche = grille.plusProche(p.x, p.y, p.taille + 20);

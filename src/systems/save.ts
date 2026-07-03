@@ -87,6 +87,7 @@ function fusionner(brut: unknown): SaveData {
     sorts: { ...(d.sorts ?? {}) },
     evolutions: { ...(d.evolutions ?? {}) },
     compagnons: { ...(d.compagnons ?? {}) },
+    bestiaire: { ...(d.bestiaire ?? {}) },
   };
   // Migration v1 → v2 : le bonus passif passe sur les plumes cumulées.
   if ((d.version ?? 1) < 2 && d.cumulPlumes === undefined) {

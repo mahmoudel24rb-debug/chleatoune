@@ -7,7 +7,7 @@ import { PORTES, type PorteDef } from '../data/portes';
 import { jeu } from '../core/mode';
 import { state } from '../core/state';
 import { birb } from '../entities/birb';
-import { spritePorte, SPRITE_TAPIS, SPRITE_MARCHAND } from '../core/structures';
+import { spritePorte, SPRITE_TAPIS, SPRITE_MARCHAND, SPRITE_TROPHEE } from '../core/structures';
 import { spriteMercier } from '../core/sprites';
 import { enregistrer, type Interactif } from './interactions';
 import { ajouterToast } from '../ui/toasts';
@@ -93,6 +93,19 @@ export function amenagerAntre(): void {
     etiquette: () => '🧵 LE MERCIER',
     texte: () => 'LE MERCIER [M]\nParchemins de stats et sortilèges cousus.',
     action: ouvrirMercier,
+  });
+
+  // le trophée du bestiaire complet (plan 14 §3), au mur de l'Antre
+  interactifs.push({
+    id: 'trophee-bestiaire',
+    x: CONFIG.monde.largeur / 2 + 280,
+    y: CONFIG.monde.hauteur - 160,
+    rayon: 80,
+    visible: () => state.save.bestiaireComplet === true,
+    sprite: () => SPRITE_TROPHEE,
+    etiquette: () => '🏆 LA GRANDE COLLECTIONNEUSE',
+    texte: () => 'Le trophée du Bestiaire complet.\nTous les archimonstres sont tombés.',
+    action: () => ajouterToast('👑 ILS AVAIENT DES NOMS. ELLE LES A TOUS RETENUS.'),
   });
 
   interactifs.push({

@@ -4,6 +4,10 @@
 import { MONNAIES, THEME, ZONES } from '../data/config';
 import { zonesDebloquees } from '../data/progression';
 import { PARCHEMINS } from '../data/parchemins';
+import { MALEDICTIONS, scoreMaledictions } from '../data/maledictions';
+import { ARCHIMONSTRES } from '../data/archimonstres';
+import { frameGlb } from '../core/sprites';
+import { setMaledictionsPorte } from '../systems/donjon';
 import { NIVEAU_MAX_SORT, SORTS, multNiveauSort, type SortDef } from '../data/sorts';
 import { SWARM, coutNiveauSort, coutParchemin } from '../data/swarm';
 import {
@@ -312,6 +316,42 @@ export function ouvrirConfirmationPorte(
   }
   modal.appendChild(el('div', 'ligne-modal', 'K.O. = retour à l’Antre, butin conservé.'));
 
+  // malédictions (plan 14 §2) : uniquement sur une porte déjà terminée,
+  // jamais la sans-fin — verrouillées une fois entré, comme les idoles
+  const dejaFinie = !porte.sansFin && (state.save.swarm.termines[porte.niveau] ?? 0) > 0;
+  const choixMaledictions: string[] = [];
+  if (dejaFinie) {
+    modal.appendChild(el('div', 'ligne-modal', '— MALÉDICTIONS (0 À 3, DORÉS ET XP MULTIPLIÉS) —'));
+    const ligneMult = el('div', 'ligne-modal', '☠ MULTIPLICATEUR : ×1');
+    const majMult = () => {
+      const mult = Math.min(SWARM.maledictions.plafond, 1 + scoreMaledictions(choixMaledictions) / 100);
+      ligneMult.textContent = `☠ MULTIPLICATEUR : ×${mult.toFixed(2).replace('.', ',')} (dorés et XP de la porte uniquement)`;
+    };
+    for (const m of MALEDICTIONS) {
+      const ligne = el('label', 'ligne-modal ligne-escouade');
+      const case_ = el('input') as HTMLInputElement;
+      case_.type = 'checkbox';
+      case_.addEventListener('change', () => {
+        const index = choixMaledictions.indexOf(m.id);
+        if (index >= 0) choixMaledictions.splice(index, 1);
+        if (case_.checked) {
+          if (choixMaledictions.length >= 3) {
+            case_.checked = false;
+            ajouterToast('3 MALÉDICTIONS MAXIMUM !');
+            return;
+          }
+          choixMaledictions.push(m.id);
+        }
+        setMaledictionsPorte(choixMaledictions);
+        majMult();
+      });
+      ligne.append(case_, el('span', '', ` ${m.nom} (+${m.score}) — ${m.effet}`));
+      modal.appendChild(ligne);
+    }
+    modal.appendChild(ligneMult);
+  }
+  setMaledictionsPorte([]); // repart propre à chaque ouverture du modal
+
   // escouade (plan 13 §5) : max 3 copies de combat, choix mémorisé
   const debloquees = COMPAGNONS_BIOMES.filter(
     (c) => (state.save.compagnons[c.id] ?? 0) >= UNITES_MAX
@@ -363,6 +403,10 @@ export function ouvrirFinDonjon(
     dores: number;
     plumes: number;
     premiere: boolean;
+    defi?: { nom: string; reussi: boolean };
+    maledictions?: { n: number; mult: number };
+    bonusDores?: number;
+    archis?: string[];
   },
   actions: { surRejouer: () => void; surRetour: () => void }
 ): void {
@@ -378,6 +422,25 @@ export function ouvrirFinDonjon(
   modal.appendChild(
     el('div', 'ligne-modal', `BUTIN : ${formatNombre(stats.dores, 0)} ${THEME.dore.pluriel}${stats.plumes > 0 ? ` + ${stats.plumes} ${THEME.prestige.nom}` : ''}`)
   );
+  // le récap du plan 14 : défi, malédictions, archimonstres — un seul écran
+  if (stats.defi) {
+    modal.appendChild(
+      el('div', 'ligne-modal', `🎯 DÉFI « ${stats.defi.nom} » : ${stats.defi.reussi ? 'RÉUSSI ✓' : 'RATÉ ✗ (aucun malus)'}`)
+    );
+  }
+  if (stats.maledictions) {
+    modal.appendChild(
+      el('div', 'ligne-modal', `☠ MALÉDICTIONS ×${stats.maledictions.n} — MULTIPLICATEUR ×${stats.maledictions.mult.toFixed(2).replace('.', ',')}`)
+    );
+  }
+  if ((stats.bonusDores ?? 0) > 0) {
+    modal.appendChild(
+      el('div', 'ligne-modal', `BONUS : +${formatNombre(stats.bonusDores!, 0)} ${THEME.dore.pluriel} (défi/malédictions)`)
+    );
+  }
+  for (const archi of stats.archis ?? []) {
+    modal.appendChild(el('div', 'ligne-modal', `👑 ARCHIMONSTRE VAINCU : ${archi}`));
+  }
   const btnRejouer = el('button', 'btn btn-modal', 'REJOUER CETTE PORTE');
   btnRejouer.addEventListener('click', () => {
     fermerModal();
@@ -538,6 +601,55 @@ function iconePoisson(couleurs: [string, string], connu: boolean): HTMLCanvasEle
   return c;
 }
 
+/** Le Bestiaire des archimonstres (plan 14 §3) — silhouette tant que
+ *  jamais vaincu, sprite doré + compteur ensuite. */
+export function ouvrirBestiaire(): void {
+  ouvrir();
+  const bestiaire = state.save.bestiaire;
+  const total = Object.keys(ARCHIMONSTRES).length;
+  const vaincus = Object.keys(ARCHIMONSTRES).filter((id) => (bestiaire[id] ?? 0) > 0).length;
+  modal.appendChild(el('h2', '', `BESTIAIRE — ${vaincus}/${total}`));
+  modal.appendChild(
+    el('p', 'rebirb-explication', 'Les archimonstres : rares, dorés, nommés. 1,5 % de chance par monstre — ouvre l’œil (et l’oreille).')
+  );
+  for (const [typeId, nom] of Object.entries(ARCHIMONSTRES)) {
+    const victoires = bestiaire[typeId] ?? 0;
+    const connu = victoires > 0;
+    const ligne = el('div', 'ligne-dex');
+    const icone = frameGlb(`m_${typeId}`, 'face', 'idle');
+    if (icone) {
+      const mini = document.createElement('canvas');
+      mini.width = 36;
+      mini.height = 36;
+      const ctx = mini.getContext('2d')!;
+      ctx.imageSmoothingEnabled = false;
+      const echelle = Math.min(36 / icone.width, 36 / icone.height);
+      if (!connu) ctx.filter = 'brightness(0)'; // silhouette noire
+      else ctx.filter = 'sepia(1) saturate(2.4) hue-rotate(-8deg) brightness(1.2)'; // doré
+      ctx.drawImage(icone, 0, 0, icone.width * echelle, icone.height * echelle);
+      ligne.appendChild(mini);
+    }
+    const infos = el('div', 'dex-infos');
+    const nomEl = el('div', 'dex-nom', connu ? nom : '? ? ?');
+    nomEl.style.color = connu ? THEME.dore.couleur : '#8a8a96';
+    infos.appendChild(nomEl);
+    infos.appendChild(
+      el('div', 'dex-detail', connu ? `VAINCU ×${victoires}` : `(archimonstre du ${typeId.toUpperCase()})`)
+    );
+    ligne.appendChild(infos);
+    modal.appendChild(ligne);
+  }
+  if (state.save.bestiaireComplet) {
+    modal.appendChild(el('div', 'ligne-modal', '🏆 LA GRANDE COLLECTIONNEUSE — trophée exposé dans l’Antre'));
+  }
+  const versDex = el('button', 'btn btn-modal', '← MIKUDEX');
+  versDex.addEventListener('click', ouvrirMikudex);
+  modal.appendChild(versDex);
+  const fermer = el('button', 'btn btn-modal', 'FERMER');
+  fermer.addEventListener('click', fermerModal);
+  modal.appendChild(fermer);
+}
+
 export function ouvrirMikudex(): void {
   ouvrir();
   const progression = progressionDex();
@@ -563,6 +675,9 @@ export function ouvrirMikudex(): void {
     ligne.appendChild(infos);
     modal.appendChild(ligne);
   }
+  const versBestiaire = el('button', 'btn btn-modal', 'BESTIAIRE DES ARCHIMONSTRES →');
+  versBestiaire.addEventListener('click', ouvrirBestiaire);
+  modal.appendChild(versBestiaire);
   const fermer = el('button', 'btn btn-modal', 'FERMER (F)');
   fermer.addEventListener('click', fermerModal);
   modal.appendChild(fermer);
