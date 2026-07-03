@@ -1,6 +1,7 @@
-// Le créateur / sélecteur de personnage : au premier lancement on crée
-// son personnage (nom + skin), ensuite on peut en changer ou en créer
-// d'autres — chacun garde sa propre progression.
+// L'accueil du jeu, façon MMO : dès la première ouverture on peut SOIT
+// créer un personnage, SOIT se connecter avec un code pour reprendre
+// une aventure commencée ailleurs. Chaque personnage garde sa propre
+// progression, et son code de connexion la suit partout.
 
 import { SKINS } from '../data/skins';
 import { el } from '../core/utils';
@@ -11,9 +12,10 @@ import {
   profilActif,
   resumeProfil,
   supprimerProfil,
+  type Profil,
 } from '../systems/profils';
-import { cloudDisponible, tirerCloud } from '../systems/cloud';
 import { verrouillerSauvegarde } from '../systems/save';
+import { connexionCloud } from '../systems/cloud';
 
 let ecran: HTMLElement;
 
@@ -21,7 +23,7 @@ export function initCreation(): void {
   ecran = document.getElementById('ecran-perso')!;
   if (!profilActif()) {
     if (listeProfils().length > 0) ouvrirSelection(false);
-    else ouvrirCreation(false);
+    else ouvrirAccueil();
   }
 }
 
@@ -37,6 +39,98 @@ function jouer(id: string): void {
   verrouillerSauvegarde(); // l'état en mémoire ne doit pas fuiter vers ce profil
   definirActif(id);
   location.reload(); // reboot propre avec le bon skin et la bonne sauvegarde
+}
+
+/** Premier écran : nouvelle aventure, ou connexion avec un code. */
+export function ouvrirAccueil(): void {
+  ecran.textContent = '';
+  afficher();
+  ecran.appendChild(el('h1', '', '✦ CHLÉATOUNE ✦'));
+  ecran.appendChild(el('div', 'perso-resume', 'BIENVENUE ! QUE VEUX-TU FAIRE ?'));
+
+  const btnNouveau = el('button', 'btn btn-modal affordable', 'CRÉER UN PERSONNAGE');
+  btnNouveau.addEventListener('click', () => ouvrirCreation(true));
+  ecran.appendChild(btnNouveau);
+
+  const btnConnexion = el('button', 'btn btn-modal', 'SE CONNECTER AVEC UN CODE ☁');
+  btnConnexion.addEventListener('click', () => ouvrirConnexion());
+  ecran.appendChild(btnConnexion);
+
+  ecran.appendChild(
+    el('div', 'perso-resume', 'Déjà une aventure sur un autre appareil ?\nTon code de connexion (menu Échap) la ramène ici.')
+  );
+}
+
+/** Connexion : le code restaure le personnage complet (nom, skin, partie). */
+export function ouvrirConnexion(): void {
+  ecran.textContent = '';
+  afficher();
+  ecran.appendChild(el('h1', '', 'SE CONNECTER'));
+  ecran.appendChild(el('div', 'perso-resume', 'ENTRE LE CODE DE CONNEXION DU PERSONNAGE (MENU ÉCHAP SUR L’AUTRE APPAREIL)'));
+
+  const champCode = el('input') as HTMLInputElement;
+  champCode.className = 'champ-nom';
+  champCode.placeholder = 'CHLEA-…';
+  champCode.maxLength = 24;
+  ecran.appendChild(champCode);
+
+  const statut = el('div', 'perso-resume', '');
+  const btnValider = el('button', 'btn btn-modal affordable', 'SE CONNECTER');
+  btnValider.addEventListener('click', async () => {
+    const code = champCode.value.trim().toUpperCase();
+    if (!code) return;
+
+    // déjà connecté sur cet appareil ? on reprend ce profil, tout simplement
+    const existant = listeProfils().find((p) => p.codeSync === code);
+    if (existant) {
+      jouer(existant.id);
+      return;
+    }
+
+    btnValider.textContent = 'CONNEXION…';
+    btnValider.disabled = true;
+    const personnage = await connexionCloud(code);
+    if (!personnage) {
+      btnValider.textContent = 'SE CONNECTER';
+      btnValider.disabled = false;
+      statut.textContent = 'CODE INTROUVABLE (OU CLOUD INJOIGNABLE). VÉRIFIE-LE ET RÉESSAIE.';
+      return;
+    }
+    const profil = creerProfil(personnage.nom, personnage.skin, code);
+    localStorage.setItem(`birblike_save_${profil.id}`, personnage.donnees);
+    jouer(profil.id);
+  });
+  champCode.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') btnValider.click();
+  });
+  ecran.appendChild(btnValider);
+  ecran.appendChild(statut);
+
+  const btnRetour = el('button', 'btn btn-modal', 'RETOUR');
+  btnRetour.addEventListener('click', () =>
+    listeProfils().length > 0 ? ouvrirSelection(!!profilActif()) : ouvrirAccueil()
+  );
+  ecran.appendChild(btnRetour);
+  champCode.focus();
+}
+
+/** Après la création : on affiche le code UNE FOIS, bien en évidence. */
+function ecranCode(profil: Profil): void {
+  ecran.textContent = '';
+  afficher();
+  ecran.appendChild(el('h1', '', `BIENVENUE, ${profil.nom} !`));
+  const carte = el('div', 'carte-perso');
+  carte.appendChild(el('div', 'perso-resume', 'TON CODE DE CONNEXION :'));
+  const code = el('div', 'perso-nom', profil.codeSync ?? '');
+  code.style.fontSize = '14px';
+  carte.appendChild(code);
+  carte.appendChild(
+    el('div', 'perso-resume', 'NOTE-LE PRÉCIEUSEMENT : il permet de reprendre\nton aventure sur n’importe quel appareil.\n(Il reste visible dans le menu ÉCHAP.)')
+  );
+  ecran.appendChild(carte);
+  const btnJouer = el('button', 'btn btn-modal affordable', 'JOUER !');
+  btnJouer.addEventListener('click', () => jouer(profil.id));
+  ecran.appendChild(btnJouer);
 }
 
 export function ouvrirSelection(fermable = true): void {
@@ -78,35 +172,13 @@ export function ouvrirSelection(fermable = true): void {
   }
   ecran.appendChild(listeEl);
 
+  const ligne = el('div', 'carte-achats');
   const btnNouveau = el('button', 'btn btn-modal', '+ NOUVEAU PERSONNAGE');
   btnNouveau.addEventListener('click', () => ouvrirCreation(true));
-  ecran.appendChild(btnNouveau);
-
-  // Récupération d'un personnage via son code cloud (autre appareil)
-  if (cloudDisponible()) {
-    const ligne = el('div', 'carte-achats');
-    const champCode = el('input') as HTMLInputElement;
-    champCode.className = 'champ-nom';
-    champCode.placeholder = 'CODE CLOUD (CHLEA-…)';
-    champCode.maxLength = 24;
-    const btnCloud = el('button', 'btn btn-modal', 'RÉCUPÉRER ☁');
-    btnCloud.addEventListener('click', async () => {
-      const code = champCode.value.trim().toUpperCase();
-      if (!code) return;
-      btnCloud.textContent = '…';
-      const donnees = await tirerCloud(code);
-      if (!donnees) {
-        btnCloud.textContent = 'INTROUVABLE…';
-        window.setTimeout(() => (btnCloud.textContent = 'RÉCUPÉRER ☁'), 2500);
-        return;
-      }
-      const profil = creerProfil('RÉCUPÉRÉ', SKINS[0].id, code);
-      localStorage.setItem(`birblike_save_${profil.id}`, donnees);
-      jouer(profil.id);
-    });
-    ligne.append(champCode, btnCloud);
-    ecran.appendChild(ligne);
-  }
+  const btnConnexion = el('button', 'btn btn-modal', 'SE CONNECTER ☁');
+  btnConnexion.addEventListener('click', () => ouvrirConnexion());
+  ligne.append(btnNouveau, btnConnexion);
+  ecran.appendChild(ligne);
 
   if (fermable && profilActif()) {
     const btnRetour = el('button', 'btn btn-modal', 'RETOUR AU JEU');
@@ -151,14 +223,14 @@ export function ouvrirCreation(retourPossible: boolean): void {
   const btnCreer = el('button', 'btn btn-modal affordable', 'C’EST PARTI !');
   btnCreer.addEventListener('click', () => {
     const profil = creerProfil(champNom.value, skinChoisi);
-    jouer(profil.id);
+    ecranCode(profil); // on montre le code de connexion avant de jouer
   });
   ecran.appendChild(btnCreer);
 
-  if (retourPossible && listeProfils().length > 0) {
-    const btnRetour = el('button', 'btn btn-modal', 'RETOUR');
-    btnRetour.addEventListener('click', () => ouvrirSelection());
-    ecran.appendChild(btnRetour);
-  }
+  const btnRetour = el('button', 'btn btn-modal', 'RETOUR');
+  btnRetour.addEventListener('click', () =>
+    listeProfils().length > 0 && retourPossible ? ouvrirSelection(!!profilActif()) : ouvrirAccueil()
+  );
+  ecran.appendChild(btnRetour);
   champNom.focus();
 }

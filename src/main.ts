@@ -67,7 +67,7 @@ import {
 import { ajouterToast } from './ui/toasts';
 import { initCreation } from './ui/creation';
 import { migrerVersProfils } from './systems/profils';
-import { initBeaconCloud, initCloud, majCloud } from './systems/cloud';
+import { cloudDisponible, initBeaconCloud, initCloud, majCloud, pousserCloud } from './systems/cloud';
 
 // ---------------------------------------------------------------- setup
 migrerVersProfils(); // l'ancienne sauvegarde unique devient un personnage
@@ -487,4 +487,9 @@ function render(): void {
 demarrerBoucle(update, render);
 
 // Poignée de debug (overlay F1 + tests automatisés).
-(window as unknown as Record<string, unknown>).__jeu = { birb, state, jeu };
+(window as unknown as Record<string, unknown>).__jeu = {
+  birb,
+  state,
+  jeu,
+  cloud: { disponible: cloudDisponible, pousser: pousserCloud },
+};

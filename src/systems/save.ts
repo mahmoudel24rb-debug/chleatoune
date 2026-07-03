@@ -30,6 +30,11 @@ let verrou = false;
 export function verrouillerSauvegarde(): void {
   verrou = true;
 }
+/** Le cloud doit AUSSI respecter le verrou (sinon le beacon de fermeture
+ *  pousse l'état de l'ancien perso sous le code du nouveau). */
+export function sauvegardeVerrouillee(): boolean {
+  return verrou;
+}
 
 export function sauvegarder(): void {
   if (verrou) return;

@@ -695,4 +695,6 @@ canvas#game-area {
   font-size: 8px;
   opacity: 0.75;
   text-align: center;
+  white-space: pre-line;
+  line-height: 2;
 }

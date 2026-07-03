@@ -158,14 +158,14 @@ export function ouvrirParametres(): void {
   });
   modal.appendChild(btnPerso);
 
-  // Code de synchro cloud (une fois le jeu déployé sur Vercel)
+  // Code de connexion (permet de reprendre l'aventure ailleurs)
   const code = codeSync();
   if (code) {
     modal.appendChild(
       el(
         'div',
         'ligne-modal',
-        `CODE CLOUD : ${code}${cloudDisponible() ? ' ☁' : ' (hors-ligne)'}`
+        `CODE DE CONNEXION : ${code}${cloudDisponible() ? ' ☁' : ' (hors-ligne)'}`
       )
     );
   }
