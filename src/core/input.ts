@@ -38,4 +38,6 @@ function actif(codes: string[]): boolean {
 export const input = {
   axeX: () => (actif(DROITE) ? 1 : 0) - (actif(GAUCHE) ? 1 : 0),
   axeY: () => (actif(BAS) ? 1 : 0) - (actif(HAUT) ? 1 : 0),
+  /** la touche action est-elle MAINTENUE ? (lancer chargé, lutte — plan 17) */
+  actionTenue: () => enfoncees.has('Space'),
 };

@@ -9,6 +9,7 @@ import { ARCHIMONSTRES } from '../data/archimonstres';
 import { CATEGORIES_SUCCES, SUCCES } from '../data/succes';
 import { RECOMPENSE_OFFRANDE } from '../data/calendrier';
 import { frameGlb } from '../core/sprites';
+import { spritePoisson } from '../core/sprites-poissons';
 import { setMaledictionsPorte } from '../systems/donjon';
 import { progressionSucces } from '../systems/succes';
 import { acheterChasse, chasseActive, indiceFilSecret } from '../systems/chasses';
@@ -582,27 +583,20 @@ export function basculerBoutiquePeche(): void {
   else ouvrirBoutiquePeche();
 }
 
-/** Dessine un petit poisson stylisé (pour le Mikudex). */
-function iconePoisson(couleurs: [string, string], connu: boolean): HTMLCanvasElement {
+/** L'icône du Mikudex : le sprite AC-style, en silhouette si inconnu. */
+function iconePoisson(id: string, connu: boolean): HTMLCanvasElement {
+  const sprite = spritePoisson(id, 0, 1);
   const c = document.createElement('canvas');
-  c.width = 36;
-  c.height = 20;
+  c.width = 40;
+  c.height = 32;
   const ctx = c.getContext('2d')!;
-  ctx.fillStyle = connu ? couleurs[0] : '#3a3a45';
-  ctx.beginPath();
-  ctx.ellipse(15, 10, 11, 6, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(25, 10);
-  ctx.lineTo(33, 4);
-  ctx.lineTo(33, 16);
-  ctx.closePath();
-  ctx.fill();
-  if (connu) {
-    ctx.fillStyle = couleurs[1];
-    ctx.fillRect(10, 8, 6, 3);
-    ctx.fillStyle = '#2c2337';
-    ctx.fillRect(7, 8, 2, 2);
+  ctx.imageSmoothingEnabled = false;
+  if (sprite) {
+    if (!connu) ctx.filter = 'brightness(0) opacity(0.55)';
+    const echelle = Math.min(38 / sprite.width, 30 / sprite.height);
+    const w = sprite.width * echelle;
+    const h = sprite.height * echelle;
+    ctx.drawImage(sprite, (40 - w) / 2, (32 - h) / 2, w, h);
   }
   return c;
 }
@@ -664,18 +658,24 @@ export function ouvrirMikudex(): void {
     const entree = state.save.peche.dex[p.id];
     const connu = (entree?.captures ?? 0) > 0;
     const ligne = el('div', 'ligne-dex');
-    ligne.appendChild(iconePoisson(p.couleurs, connu));
+    ligne.appendChild(iconePoisson(p.id, connu));
     const infos = el('div', 'dex-infos');
     const nom = el('div', 'dex-nom', connu ? p.nom : '? ? ?');
     nom.style.color = RARETES[p.rarete].couleur;
     infos.appendChild(nom);
+    // bande + créneau + record : affichés APRÈS la première capture
+    // (le savoir de pêcheuse se gagne — plan 17 §2 et §5)
+    const habitat = connu
+      ? ` · ${p.bande.toUpperCase()} · ${p.creneau ? p.creneau.toUpperCase() : 'TOUTE HEURE'}`
+      : ' · ??? · ???';
+    const record = connu && (entree?.tailleRecord ?? 0) > 0 ? ` · 📏 ${entree!.tailleRecord} CM` : '';
     infos.appendChild(
       el(
         'div',
         'dex-detail',
         connu
-          ? `${p.rarete.toUpperCase()} — ${entree!.captures} PRISE${entree!.captures > 1 ? 'S' : ''}${entree!.shiny > 0 ? ` DONT ${entree!.shiny} ✨` : ''}`
-          : p.rarete.toUpperCase()
+          ? `${p.rarete.toUpperCase()}${habitat}${record} — ${entree!.captures} PRISE${entree!.captures > 1 ? 'S' : ''}${entree!.shiny > 0 ? ` DONT ${entree!.shiny} ✨` : ''}`
+          : `${p.rarete.toUpperCase()}${habitat} — OMBRE ${p.ombre}`
       )
     );
     ligne.appendChild(infos);

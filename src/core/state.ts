@@ -50,8 +50,8 @@ export interface SaveData {
   peche: {
     niveau: number;
     xp: number;
-    /** captures par espèce : { normales, shiny } */
-    dex: Record<string, { captures: number; shiny: number }>;
+    /** captures par espèce : { normales, shiny, record en cm (plan 17) } */
+    dex: Record<string, { captures: number; shiny: number; tailleRecord: number }>;
     /** index de la canne équipée (data/peche-boutique.ts) */
     canne: number;
     /** stock d'appâts par id */

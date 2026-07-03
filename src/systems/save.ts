@@ -75,7 +75,13 @@ function fusionner(brut: unknown): SaveData {
     peche: {
       ...defauts.peche,
       ...(d.peche ?? {}),
-      dex: { ...(d.peche?.dex ?? {}) },
+      // migration additive plan 17 : les vieilles entrées gagnent tailleRecord
+      dex: Object.fromEntries(
+        Object.entries(d.peche?.dex ?? {}).map(([id, e]) => [
+          id,
+          { captures: e.captures ?? 0, shiny: e.shiny ?? 0, tailleRecord: (e as { tailleRecord?: number }).tailleRecord ?? 0 },
+        ])
+      ),
     },
     swarm: {
       ...defauts.swarm,

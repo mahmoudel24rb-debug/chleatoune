@@ -50,13 +50,17 @@ import {
   actionPeche,
   appatEquipe,
   canneEquipee,
+  creneauActuel,
+  getOmbres,
   getPeche,
+  getPrisesAuto,
   majPeche,
   majPecheurs,
-  positionBouchon,
   sortirPeche,
-  surLeSpot,
+  sousLeBanc,
 } from './systems/peche';
+import { PECHE } from './data/peche-config';
+import { spritePoisson } from './core/sprites-poissons';
 import { appliquerGainsHorsLigne } from './systems/nid';
 import { amenagerCartes } from './systems/carte';
 import {
@@ -246,7 +250,7 @@ function update(dt: number): void {
     const appat = appatEquipe();
     const infos = `NIV. ${state.save.peche.niveau} — ${canneEquipee().nom} — APPÂT : ${
       appat ? `${appat.nom} (${state.save.peche.appats[appat.id]})` : 'AUCUN'
-    } — ◀▶ : SE PLACER — B : BOUTIQUE — E : PARTIR`;
+    } — ${creneauActuel().toUpperCase()} — ◀▶ : SE PLACER — ESPACE (MAINTENIR) : LANCER — B : BOUTIQUE — E : PARTIR`;
     if (pecheNiveau.textContent !== infos) pecheNiveau.textContent = infos;
   }
 
@@ -571,16 +575,42 @@ function dessinerMonde(): void {
   }
 }
 
+// les palettes de ciel par créneau (plan 17 §5) : aube rosée, jour,
+// crépuscule orangé, nuit étoilée + lucioles
+const CIELS: Record<string, { ciel: string; nuage: string; eauHaut: string; eauBas: string }> = {
+  matin: { ciel: '#f2c8d0', nuage: '#ffe6ec', eauHaut: '#7ec4d8', eauBas: '#3a7a9e' },
+  jour: { ciel: '#9fd8e0', nuage: '#c8ecf2', eauHaut: '#5ab4d4', eauBas: '#2e6a94' },
+  soir: { ciel: '#f2a06b', nuage: '#ffc89a', eauHaut: '#5a92b8', eauBas: '#2c4a70' },
+  nuit: { ciel: '#2b3a5e', nuage: '#3e5078', eauHaut: '#31597a', eauBas: '#152a44' },
+};
+
 function dessinerPeche(): void {
   const { ctx, largeur, hauteur } = ecran;
   const p = getPeche();
-  const yPonton = Math.round(hauteur * 0.45);
+  const creneau = creneauActuel();
+  const teinte = CIELS[creneau];
+  const yPonton = Math.round(hauteur * 0.4);
   const hPonton = 90;
+  const yEau = yPonton + hPonton;
+  const hEau = hauteur - yEau;
+  // conversion profondeur (px de simulation 0..260) → écran
+  const yProf = (prof: number) => yEau + 24 + (prof / PECHE.profMax) * (hEau - 60);
 
-  // Ciel + nuages
-  ctx.fillStyle = '#9fd8e0';
-  ctx.fillRect(0, 0, largeur, yPonton);
-  ctx.fillStyle = '#c8ecf2';
+  ctx.save();
+  if (p.shake > 0) ctx.translate((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8);
+
+  // ---- ciel du créneau + nuages (+ étoiles la nuit)
+  ctx.fillStyle = teinte.ciel;
+  ctx.fillRect(-8, -8, largeur + 16, yPonton + 8);
+  if (creneau === 'nuit') {
+    ctx.fillStyle = '#fff6c9';
+    for (let i = 0; i < 24; i++) {
+      const sx = (i * 151) % largeur;
+      const sy = 12 + ((i * 83) % (yPonton - 30));
+      if (Math.sin(performance.now() / 600 + i * 2) > -0.6) ctx.fillRect(sx, sy, 2, 2);
+    }
+  }
+  ctx.fillStyle = teinte.nuage;
   for (let i = 0; i < 6; i++) {
     const nx = ((i * 233 + Math.floor(performance.now() / 120) * 0.5) % (largeur + 160)) - 80;
     const ny = 40 + (i % 3) * 46;
@@ -588,48 +618,136 @@ function dessinerPeche(): void {
     ctx.fillRect(Math.round(nx) + 16, ny - 10, 56, 12);
   }
 
-  // Mer
-  ctx.fillStyle = '#5ab4d4';
-  ctx.fillRect(0, yPonton, largeur, hauteur - yPonton);
-  ctx.fillStyle = '#6ec4e2';
-  for (let i = 0; i < 40; i++) {
-    const wx = (i * 173) % largeur;
-    const wy = yPonton + hPonton + 20 + ((i * 97) % (hauteur - yPonton - hPonton - 40));
-    const osc = Math.round(Math.sin(performance.now() / 700 + i) * 6);
-    ctx.fillRect(wx + osc, wy, 26, 4);
+  // ---- l'eau : 3 bandes en dégradé de profondeur (plan 17 §7)
+  const degrade = ctx.createLinearGradient(0, yEau, 0, hauteur);
+  degrade.addColorStop(0, teinte.eauHaut);
+  degrade.addColorStop(1, teinte.eauBas);
+  ctx.fillStyle = degrade;
+  ctx.fillRect(-8, yEau, largeur + 16, hEau + 8);
+  // les 3 bandes, marquées par un liseré subtil
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  for (const bande of ['bord', 'milieu', 'large'] as const) {
+    ctx.fillRect(0, Math.round(yProf(PECHE.bandes[bande][0])), largeur, 2);
+  }
+  // deux couches de vagues sinusoïdales à vitesses différentes
+  for (const [vitesse, alpha, ecart] of [[900, 0.22, 46], [1500, 0.14, 64]] as const) {
+    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+    for (let i = 0; i < 30; i++) {
+      const wx = (i * 173) % largeur;
+      const wy = yEau + 14 + ((i * 97) % (hEau - 30));
+      const osc = Math.round(Math.sin(performance.now() / vitesse + i * (ecart / 10)) * 8);
+      ctx.fillRect(wx + osc, wy, 24, 3);
+    }
+  }
+  // scintillements 1 px
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  for (let i = 0; i < 16; i++) {
+    if (Math.sin(performance.now() / 300 + i * 7) > 0.7) {
+      ctx.fillRect((i * 199) % largeur, yEau + 10 + ((i * 131) % (hEau - 20)), 2, 2);
+    }
   }
 
-  // Ponton
+  // ---- les ombres : elles existent AVANT d'être pêchées (plan 17 §1)
+  for (const o of getOmbres()) {
+    const ox = Math.round(o.x * largeur);
+    const oy = Math.round(yProf(o.prof) + Math.sin(o.phase) * 3);
+    if (ox < -40 || ox > largeur + 40) continue;
+    const demi = PECHE.taillesOmbre[o.espece.ombre];
+    ctx.fillStyle = 'rgba(10, 20, 30, 0.3)';
+    if (o.espece.ombre === 'AILERON') {
+      // LA LÉGENDE DORÉE : l'aileron qui dépasse — un événement
+      ctx.beginPath();
+      ctx.ellipse(ox, oy, demi * 1.6, demi * 0.55, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(20, 30, 40, 0.55)';
+      ctx.beginPath();
+      ctx.moveTo(ox - 6, oy - 4);
+      ctx.lineTo(ox + 2, oy - 16 - Math.abs(Math.sin(o.phase * 2)) * 3);
+      ctx.lineTo(ox + 8, oy - 4);
+      ctx.closePath();
+      ctx.fill();
+      // sillage
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(ox - demi * 2, oy + 2);
+      ctx.lineTo(ox - demi * 3.4, oy + 5);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.ellipse(ox, oy, demi * (1 + Math.sin(o.phase) * 0.06), demi * 0.42, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // ---- les oiseaux du banc (le signal AC) : ils tournent au-dessus
+  const spotX = Math.round(largeur * p.spot);
+  const spotY = yEau - 26;
+  ctx.strokeStyle = creneau === 'nuit' ? '#c8d8f2' : '#4a4a52';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 3; i++) {
+    const a = p.animT * 1.4 + (i * Math.PI * 2) / 3;
+    const bx = spotX + Math.cos(a) * 30;
+    const by = spotY + Math.sin(a) * 9 - 14;
+    ctx.beginPath();
+    ctx.moveTo(bx - 6, by);
+    ctx.quadraticCurveTo(bx - 2, by - 5, bx, by);
+    ctx.quadraticCurveTo(bx + 2, by - 5, bx + 6, by);
+    ctx.stroke();
+  }
+
+  // ---- le ponton + roseaux + lanternes
   ctx.fillStyle = '#8a5a34';
   ctx.fillRect(0, yPonton, largeur, hPonton);
   ctx.fillStyle = '#6e4a2c';
   for (let x = 0; x < largeur; x += 42) ctx.fillRect(x, yPonton, 4, hPonton);
   ctx.fillRect(0, yPonton, largeur, 6);
-  // pilotis
   for (let x = 60; x < largeur; x += 300) {
     ctx.fillStyle = '#5a3a20';
-    ctx.fillRect(x, yPonton + hPonton, 18, 26);
+    ctx.fillRect(x, yEau, 18, 26);
   }
-
-  // Le banc de poissons : des remous à sa position (bonus si on y pêche)
-  const spotX = Math.round(largeur * p.spot);
-  const spotY = yPonton + hPonton + 70;
-  ctx.strokeStyle = surLeSpot() ? '#ffd94a' : '#c8ecf2';
-  ctx.lineWidth = 2;
-  for (let i = 0; i < 3; i++) {
-    const phase = (p.animT * 0.8 + i / 3) % 1;
-    ctx.globalAlpha = 1 - phase;
+  // roseaux et nénuphars au bord
+  for (let i = 0; i < 8; i++) {
+    const rx = (i * 157 + 40) % largeur;
+    ctx.strokeStyle = '#3c7a44';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.ellipse(spotX, spotY, 12 + phase * 34, 5 + phase * 12, 0, 0, Math.PI * 2);
+    ctx.moveTo(rx, yEau + 12);
+    ctx.quadraticCurveTo(rx + Math.sin(performance.now() / 900 + i) * 4, yEau - 2, rx + 2, yEau - 12);
     ctx.stroke();
+    if (i % 3 === 0) {
+      ctx.fillStyle = '#57b053';
+      ctx.beginPath();
+      ctx.ellipse((rx + 60) % largeur, yEau + 20, 10, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
-  ctx.globalAlpha = 1;
-  // petits poissons qui sautent au niveau du banc
-  ctx.fillStyle = '#8ab8d4';
-  const saut = Math.abs(Math.sin(p.animT * 2.2)) * 18;
-  ctx.fillRect(spotX - 18 + Math.round(Math.sin(p.animT * 1.4) * 10), spotY - 8 - Math.round(saut), 8, 4);
+  // les lanternes s'allument au soir et à la nuit
+  for (let x = 150; x < largeur; x += 420) {
+    ctx.fillStyle = '#4a3524';
+    ctx.fillRect(x, yPonton - 44, 4, 44);
+    ctx.fillRect(x - 5, yPonton - 50, 14, 8);
+    const allumee = creneau === 'soir' || creneau === 'nuit';
+    if (allumee) {
+      ctx.fillStyle = 'rgba(255, 214, 120, 0.25)';
+      ctx.beginPath();
+      ctx.arc(x + 2, yPonton - 40, 22, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = allumee ? '#ffd678' : '#8a8296';
+    ctx.fillRect(x - 2, yPonton - 42, 8, 10);
+  }
+  // lucioles la nuit
+  if (creneau === 'nuit') {
+    ctx.fillStyle = '#d9edb2';
+    for (let i = 0; i < 7; i++) {
+      const lx = (i * 241 + Math.sin(performance.now() / 800 + i) * 30) % largeur;
+      const ly = yPonton - 20 + Math.sin(performance.now() / 500 + i * 3) * 16;
+      if (Math.sin(performance.now() / 350 + i * 5) > 0) ctx.fillRect(Math.round(lx), Math.round(ly), 2, 2);
+    }
+  }
 
-  // Les doughcats pêcheurs embauchés, alignés à droite du ponton
+  // ---- les pêcheurs automatiques, VISIBLES (plan 17 §8)
   for (let i = 0; i < state.save.peche.pecheurs; i++) {
     const px = Math.round(largeur * (0.88 - i * 0.055));
     const py = yPonton + hPonton - 10;
@@ -643,11 +761,26 @@ function dessinerPeche(): void {
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(px + 12, py - chatFrame.height + 14);
-    ctx.quadraticCurveTo(px + 40, py - 10, px + 52, yPonton + hPonton + 40 + (i % 2) * 14);
+    ctx.quadraticCurveTo(px + 40, py - 10, px + 52, yEau + 40 + (i % 2) * 14);
     ctx.stroke();
   }
+  // splash + texte quand un pêcheur attrape
+  for (const prise of getPrisesAuto()) {
+    const px = Math.round(largeur * (0.88 - prise.index * 0.055)) + 52;
+    const py = yEau + 40;
+    ctx.globalAlpha = Math.min(1, prise.t);
+    ctx.strokeStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(px, py, 8 + (1.4 - prise.t) * 14, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.font = '8px "Press Start 2P", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff6c9';
+    ctx.fillText('UNE PRISE !', px, py - 20 - (1.4 - prise.t) * 10);
+    ctx.globalAlpha = 1;
+  }
 
-  // L'héroïne, de profil, à la position choisie sur le ponton
+  // ---- l'héroïne, de profil, à la position choisie
   const hx = Math.round(largeur * p.x);
   const hy = yPonton + hPonton - 8;
   const vue = SPRITES_HEROINE.profil;
@@ -657,62 +790,137 @@ function dessinerPeche(): void {
   ctx.drawImage(frame, -Math.round(frame.width / 2), -frame.height + 6);
   ctx.restore();
 
-  // Ligne + bouchon
-  if (p.etat !== 'pret') {
+  // jauge du lancer chargé (plan 17 §2)
+  if (p.etat === 'charge') {
+    const jy = hy - frame.height - 22;
+    ctx.fillStyle = '#1a1420';
+    ctx.fillRect(hx - 42, jy, 84, 12);
+    ctx.fillStyle = p.jauge > 66 ? '#e5533f' : p.jauge > 33 ? '#ffd94a' : '#7dbb5c';
+    ctx.fillRect(hx - 40, jy + 2, Math.round((p.jauge / 100) * 80), 8);
+    ctx.font = '8px "Press Start 2P", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#e8e8f0';
+    ctx.fillText(p.jauge > 66 ? 'LARGE' : p.jauge > 33 ? 'MILIEU' : 'BORD', hx, jy - 6);
+  }
+
+  // ---- ligne + bouchon
+  const enLigne = ['attente', 'mordille', 'plongeon', 'lutte'].includes(p.etat);
+  if (enLigne) {
     const boutX = hx + 46;
     const boutY = hy - frame.height + 30;
-    const bobX = Math.round(largeur * positionBouchon());
-    const agite = p.etat === 'touche';
+    const bobX = Math.round(p.bouchonX * largeur);
+    const mordille = p.etat === 'mordille' && p.tEtat > 0 && p.mordillesRestants >= 0;
+    const coule = p.etat === 'plongeon' || p.etat === 'lutte';
     const bobY =
-      yPonton + hPonton + 60 + Math.round(Math.sin(p.animT * (agite ? 22 : 3)) * (agite ? 6 : 3));
-    ctx.strokeStyle = '#f2f2f2';
-    ctx.lineWidth = 1;
+      yProf(p.bouchonProf) +
+      (coule ? 10 : mordille ? Math.round(Math.sin(p.animT * 26) * 4) : Math.round(Math.sin(p.animT * 3) * 3));
+    ctx.strokeStyle = p.etat === 'lutte' && p.tremblement > 0 ? '#ff6b6b' : '#f2f2f2';
+    ctx.lineWidth = p.etat === 'lutte' ? 2 : 1;
     ctx.beginPath();
     ctx.moveTo(boutX, boutY);
-    ctx.quadraticCurveTo(bobX - 40, boutY - 30, bobX, bobY - 8);
+    const tremble = p.etat === 'lutte' && p.tremblement > 0 ? (Math.random() - 0.5) * 8 : 0;
+    ctx.quadraticCurveTo(bobX - 40 + tremble, boutY - 30, bobX, bobY - 8);
     ctx.stroke();
-    ctx.fillStyle = agite ? '#ffd94a' : '#e5533f';
-    ctx.beginPath();
-    ctx.arc(bobX, bobY, 6, 0, Math.PI * 2);
-    ctx.fill();
-    if (agite) {
-      ctx.fillStyle = '#ffd94a';
-      ctx.font = '18px "Press Start 2P", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('!', bobX, bobY - 22);
+    if (!coule) {
+      ctx.fillStyle = '#e5533f';
+      ctx.beginPath();
+      ctx.arc(bobX, bobY, 6, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // gros splash du plongeon
+      ctx.strokeStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(bobX, bobY - 6, 10 + Math.sin(p.animT * 20) * 3, 0, Math.PI * 2);
+      ctx.stroke();
+      if (p.etat === 'plongeon') {
+        ctx.fillStyle = '#ffd94a';
+        ctx.font = '18px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('!', bobX, bobY - 26);
+      }
+    }
+    // étincelles dorées : elle SAIT qu'un shiny se bat (plan 17 §4)
+    if (coule && p.ombreCible?.shiny) {
+      ctx.fillStyle = '#fff6c9';
+      for (let i = 0; i < 4; i++) {
+        const a = p.animT * 4 + (i * Math.PI) / 2;
+        ctx.fillRect(bobX + Math.round(Math.cos(a) * 16), bobY - 6 + Math.round(Math.sin(a) * 10), 3, 3);
+      }
     }
   }
 
-  // Dernière prise : le poisson au-dessus de l'héroïne
-  if (p.prise) {
-    const [corps, detail] = p.prise.espece.couleurs;
-    const fx = hx;
-    const fy = hy - frame.height - 26;
-    ctx.fillStyle = corps;
-    ctx.beginPath();
-    ctx.ellipse(fx, fy, 22, 12, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(fx + 20, fy);
-    ctx.lineTo(fx + 36, fy - 12);
-    ctx.lineTo(fx + 36, fy + 12);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = detail;
-    ctx.fillRect(fx - 10, fy - 4, 12, 6);
-    ctx.fillStyle = '#2c2337';
-    ctx.fillRect(fx - 16, fy - 4, 4, 4);
-    if (p.prise.shiny) {
-      ctx.fillStyle = '#fff6c9';
-      ctx.font = '14px "Press Start 2P", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('✦', fx - 30, fy - 10);
-      ctx.fillText('✦', fx + 46, fy - 16);
-    }
-    ctx.strokeStyle = RARETES[p.prise.espece.rarete].couleur;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(fx - 34, fy - 22, 78, 44);
+  // ---- la lutte : jauges CAPTURE et TENSION (plan 17 §4)
+  if (p.etat === 'lutte') {
+    const lx = Math.round(largeur / 2) - 130;
+    const ly = hauteur - 90;
+    ctx.font = '8px "Press Start 2P", monospace';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#1a1420';
+    ctx.fillRect(lx - 6, ly - 18, 272, 56);
+    ctx.fillStyle = '#e8e8f0';
+    ctx.fillText('CAPTURE', lx, ly - 6);
+    ctx.fillStyle = '#1a1420';
+    ctx.fillRect(lx + 80, ly - 13, 182, 9);
+    ctx.fillStyle = '#7dbb5c';
+    ctx.fillRect(lx + 81, ly - 12, Math.round((p.capture / 100) * 180), 7);
+    const rouge = p.tremblement > 0;
+    ctx.fillStyle = rouge ? '#ff6b6b' : '#e8e8f0';
+    ctx.fillText(rouge ? 'TENSION !!' : 'TENSION', lx + (rouge ? Math.round((Math.random() - 0.5) * 3) : 0), ly + 16);
+    ctx.fillStyle = '#1a1420';
+    ctx.fillRect(lx + 80, ly + 9, 182, 9);
+    ctx.fillStyle = p.tension > 70 ? '#e5533f' : p.tension > 40 ? '#ffd94a' : '#5ab4d4';
+    ctx.fillRect(lx + 81, ly + 10, Math.round((Math.min(100, p.tension) / 100) * 180), 7);
   }
+
+  // ---- la révélation (le moment AC, plan 17 §7)
+  if (p.etat === 'revele' && p.prise) {
+    const prise = p.prise;
+    const sprite = spritePoisson(prise.espece.id, Math.floor(p.animT * 4) % 2 === 0 ? 0 : 1, 2, prise.shiny);
+    // 1. la pose fière : le poisson brandi au-dessus de la tête
+    if (sprite) {
+      ctx.drawImage(sprite, hx - Math.round(sprite.width / 2), hy - frame.height - sprite.height - 8);
+    }
+    if (prise.shiny) {
+      ctx.fillStyle = '#fff6c9';
+      ctx.font = '12px "Press Start 2P", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('✦', hx - 40, hy - frame.height - 30);
+      ctx.fillText('✦', hx + 42, hy - frame.height - 44);
+    }
+    // 2. la carte, après la pose (1 s)
+    if (prise.t > 0.8) {
+      const cw = 380;
+      const chh = 150;
+      const cx = Math.round((largeur - cw) / 2);
+      const cy = Math.round(hauteur * 0.16);
+      ctx.fillStyle = 'rgba(20, 15, 28, 0.94)';
+      ctx.fillRect(cx, cy, cw, chh);
+      ctx.strokeStyle = RARETES[prise.espece.rarete].couleur;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(cx, cy, cw, chh);
+      const grand = spritePoisson(prise.espece.id, 0, 3, prise.shiny);
+      if (grand) ctx.drawImage(grand, cx + 18, cy + Math.round((chh - grand.height) / 2));
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#e8e8f0';
+      ctx.font = '10px "Press Start 2P", monospace';
+      ctx.fillText(`${prise.shiny ? '✨ ' : ''}${prise.espece.nom}`, cx + 130, cy + 30);
+      ctx.fillStyle = RARETES[prise.espece.rarete].couleur;
+      ctx.font = '8px "Press Start 2P", monospace';
+      ctx.fillText(prise.espece.rarete.toUpperCase(), cx + 130, cy + 50);
+      ctx.fillStyle = '#e8e8f0';
+      ctx.fillText(`${prise.taille} CM${prise.record ? '  📏 NOUVEAU RECORD !' : ''}`, cx + 130, cy + 70);
+      // la blague de révélation ([À ÉCRIRE] tant que non personnalisée)
+      ctx.fillStyle = '#c8ccd4';
+      const blague = prise.espece.blague;
+      const lignes = blague.match(/.{1,32}(\s|$)/g) ?? [blague];
+      lignes.slice(0, 2).forEach((l, i) => ctx.fillText(l.trim(), cx + 130, cy + 96 + i * 16));
+      ctx.fillStyle = '#f2d16b';
+      ctx.fillText('ESPACE POUR CONTINUER', cx + 130, cy + chh - 12);
+    }
+  }
+
+  ctx.restore();
+  void sousLeBanc;
 }
 
 function render(): void {
