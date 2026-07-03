@@ -163,6 +163,92 @@ export const SPRITES_PANNEAUX: Record<string, HTMLCanvasElement> = {
   verrouille: panneau('#4a4a55', '#3a3a45'),
 };
 
+// ---------------------------------------------- portes de l'Antre
+// Générées par couleur de biome, avec cache. Trois états : ouverte
+// (battant coloré), verrouillée (grise + chaînes), dorée (sans-fin).
+
+const CARTE_PORTE_OUVERTE = [
+  '....KKKKKKKKKK....',
+  '..KKSSSSSSSSSSKK..',
+  '.KSSKKKKKKKKKKSSK.',
+  '.KSKPPPPPPPPPPKSK.',
+  '.KSKPpPPPPPPpPKSK.',
+  '.KSKPPPPPPPPPPKSK.',
+  '.KSKPPPfPPPPPPKSK.',
+  '.KSKPpPPPPPPpPKSK.',
+  '.KSKPPPPPPPPPPKSK.',
+  '.KSKPPPPPPPPPPKSK.',
+  '.KSKPpPPPPPPpPKSK.',
+  '.KSKPPPPPPPPPPKSK.',
+  '.KSSKKKKKKKKKKSSK.',
+  '.KSSSSSSSSSSSSSSK.',
+  '..KKKKKKKKKKKKKK..',
+];
+
+const CARTE_PORTE_VERROUILLEE = [
+  '....KKKKKKKKKK....',
+  '..KKSSSSSSSSSSKK..',
+  '.KSSKKKKKKKKKKSSK.',
+  '.KSKGGGGGGGGGGKSK.',
+  '.KSKGCGGGGGGCGKSK.',
+  '.KSKGGCGGGGCGGKSK.',
+  '.KSKGGGCGGCGGGKSK.',
+  '.KSKGGGGCCGGGGKSK.',
+  '.KSKGGGCGGCGGGKSK.',
+  '.KSKGGCGGGGCGGKSK.',
+  '.KSKGCGGGGGGCGKSK.',
+  '.KSKGGGGGGGGGGKSK.',
+  '.KSSKKKKKKKKKKSSK.',
+  '.KSSSSSSSSSSSSSSK.',
+  '..KKKKKKKKKKKKKK..',
+];
+
+const cachePortes = new Map<string, HTMLCanvasElement>();
+
+export function spritePorte(etat: 'ouverte' | 'verrouillee' | 'doree', couleur: string): HTMLCanvasElement {
+  const cle = `${etat}-${couleur}`;
+  let sprite = cachePortes.get(cle);
+  if (sprite) return sprite;
+  if (etat === 'verrouillee') {
+    sprite = creerSprite(
+      CARTE_PORTE_VERROUILLEE,
+      { K: '#2c2337', S: '#8a8a96', G: '#4a4a55', C: '#6e6e7a' },
+      4
+    );
+  } else {
+    sprite = creerSprite(
+      CARTE_PORTE_OUVERTE,
+      {
+        K: '#2c2337',
+        S: etat === 'doree' ? '#d9a94e' : '#8a8a96',
+        P: etat === 'doree' ? '#f2d16b' : couleur,
+        p: etat === 'doree' ? '#d9a94e' : '#2c2337',
+        f: '#fff6c9',
+      },
+      4
+    );
+  }
+  cachePortes.set(cle, sprite);
+  return sprite;
+}
+
+// -------------------------------------------------- tapis de sortie
+export const SPRITE_TAPIS = creerSprite(
+  [
+    '.KKKKKKKKKKKKKK.',
+    'KTTtTTTTTTTTtTTK',
+    'KTtLLLLLLLLLLtTK',
+    'KTLLlLLLLLLlLLTK',
+    'KTLLLLLllLLLLLTK',
+    'KTLLlLLLLLLlLLTK',
+    'KTtLLLLLLLLLLtTK',
+    'KTTtTTTTTTTTtTTK',
+    '.KKKKKKKKKKKKKK.',
+  ],
+  { K: '#2c2337', T: '#8a4fc4', t: '#5c3a8a', L: '#c9a0e0', l: '#fff6c9' },
+  4
+);
+
 // ------------------------------------------------------------- ponton
 export const SPRITE_PONTON = creerSprite(
   [

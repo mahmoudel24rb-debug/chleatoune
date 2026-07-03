@@ -77,12 +77,43 @@ function fusionner(brut: unknown): SaveData {
       ...(d.peche ?? {}),
       dex: { ...(d.peche?.dex ?? {}) },
     },
+    swarm: {
+      ...defauts.swarm,
+      ...(d.swarm ?? {}),
+      termines: { ...(d.swarm?.termines ?? {}) },
+      escouade: Array.isArray(d.swarm?.escouade) ? d.swarm.escouade : [],
+    },
+    parchemins: { ...(d.parchemins ?? {}) },
+    sorts: { ...(d.sorts ?? {}) },
+    evolutions: { ...(d.evolutions ?? {}) },
+    compagnons: { ...(d.compagnons ?? {}) },
   };
   // Migration v1 → v2 : le bonus passif passe sur les plumes cumulées.
   if ((d.version ?? 1) < 2 && d.cumulPlumes === undefined) {
     save.cumulPlumes = save.plumes;
   }
-  save.version = 2;
+  // Migration v2 → v3 (plan 12 §6) : l'étage d'expédition devient une
+  // porte par ÉQUIVALENCE DE PUISSANCE (1,45^(p-1) = 1 + 0,4×(e-1)).
+  // Généreux exprès : personne ne doit avoir l'impression de régresser.
+  if ((d.version ?? 1) < 3) {
+    const e = Math.max(1, save.meilleurEtage ?? 1);
+    save.swarm.porteMax = clamp(
+      Math.round(1 + Math.log(1 + 0.4 * (e - 1)) / Math.log(1.45)),
+      1,
+      12
+    );
+    save.compagnons.prairie = save.niveaux['p_doughcat'] ?? 0;
+    save.sorts.ciseaux = Math.max(1, save.sorts.ciseaux ?? 0); // jamais démunie
+    // les quêtes « étage » deviennent des quêtes « donjon »
+    for (const q of save.quetes.actives as { type: string; objectif: number; progres: number }[]) {
+      if (q.type === 'etage') {
+        q.type = 'donjon';
+        q.objectif = Math.max(1, Math.round(q.objectif / 3));
+        q.progres = 0;
+      }
+    }
+  }
+  save.version = 3;
   const zone = Math.floor(save.zone);
   // le donjon est toujours accessible ; les autres zones dépendent des
   // rebirbs (table `rebirbsRequis` de ZONES)

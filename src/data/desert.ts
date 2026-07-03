@@ -18,7 +18,7 @@ export const ARBRE_DESERT: NoeudDesert[] = [
 
 // ---------------------------------------------------------------- quêtes
 
-export type TypeQuete = 'ramasser' | 'chasser' | 'etage' | 'pecher';
+export type TypeQuete = 'ramasser' | 'chasser' | 'donjon' | 'pecher';
 
 export interface ModeleQuete {
   type: TypeQuete;
@@ -43,9 +43,9 @@ export const MODELES_QUETES: ModeleQuete[] = [
     recompense: (t) => 30 + t * 10,
   },
   {
-    type: 'etage',
-    texte: (n) => `Termine l'étage ${n} de l'expédition`,
-    objectif: (t) => 3 + t * 2,
+    type: 'donjon',
+    texte: (n) => `Termine ${n} donjon${n > 1 ? 's' : ''} de l'Antre`,
+    objectif: (t) => 1 + Math.floor(t / 2),
     recompense: (t) => 40 + t * 15,
   },
   {

@@ -20,6 +20,10 @@ export interface Interactif {
   texte: () => string;
   action: () => void;
   visible?: () => boolean;
+  /** Petit texte permanent au-dessus du sprite (nom de porte…). */
+  etiquette?: () => string;
+  /** true = anneau pulsant (la prochaine porte à battre…). */
+  pulse?: () => boolean;
 }
 
 // Un registre par contexte : 'zone-N' pour le monde, 'expedition'.
@@ -32,7 +36,8 @@ export function enregistrer(contexte: string, objets: Interactif[]): void {
 }
 
 function contexteActuel(): string {
-  if (jeu.mode === 'expedition') return 'expedition';
+  if (jeu.mode === 'antre') return 'antre';
+  if (jeu.mode === 'donjon') return 'donjon';
   return `zone-${state.save.zone}`;
 }
 
@@ -79,7 +84,36 @@ export function dessinerInteractifs(ctx: CanvasRenderingContext2D, camX: number,
     ctx.beginPath();
     ctx.ellipse(Math.round(o.x - camX), Math.round(o.y - camY), sprite.width / 3, 5, 0, 0, Math.PI * 2);
     ctx.fill();
+    // anneau pulsant (ex. la prochaine porte à battre)
+    if (o.pulse?.()) {
+      const phase = (Math.sin(performance.now() / 300) + 1) / 2;
+      ctx.strokeStyle = `rgba(255, 217, 74, ${0.35 + phase * 0.45})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(
+        Math.round(o.x - camX),
+        Math.round(o.y - camY),
+        sprite.width / 2 + 8 + phase * 5,
+        14 + phase * 3,
+        0,
+        0,
+        Math.PI * 2
+      );
+      ctx.stroke();
+    }
     ctx.drawImage(sprite, x, y);
+    // étiquette permanente au-dessus (nom de porte…)
+    if (o.etiquette) {
+      const texte = o.etiquette();
+      ctx.font = '8px "Press Start 2P", monospace';
+      ctx.textAlign = 'center';
+      const cx = Math.round(o.x - camX);
+      const largeur = ctx.measureText(texte).width;
+      ctx.fillStyle = 'rgba(10,10,14,0.75)';
+      ctx.fillRect(cx - largeur / 2 - 5, y - 18, largeur + 10, 14);
+      ctx.fillStyle = '#e8e8f0';
+      ctx.fillText(texte, cx, y - 8);
+    }
     if (o === courant) {
       ctx.strokeStyle = '#ffd94a';
       ctx.lineWidth = 2;

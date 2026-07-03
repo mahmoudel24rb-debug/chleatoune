@@ -268,6 +268,91 @@ export function ouvrirMarchand(): void {
   modal.appendChild(fermer);
 }
 
+// ---------------------------------------------- l'Antre (plan 09)
+
+/** Confirmation avant d'entrer dans une porte de donjon. */
+export function ouvrirConfirmationPorte(
+  porte: {
+    niveau: number;
+    nom: string;
+    nbVagues: number;
+    nomBoss: string;
+    sansFin?: boolean;
+    recompensePremiere: { plumes: number; dores: number };
+  },
+  surEntrer: () => void
+): void {
+  ouvrir();
+  modal.appendChild(el('h2', '', porte.sansFin ? `∞ ${porte.nom}` : `PORTE ${porte.niveau} — ${porte.nom}`));
+  modal.appendChild(
+    el(
+      'p',
+      'rebirb-explication',
+      porte.sansFin
+        ? `Des vagues sans fin, de plus en plus féroces. Record actuel : vague ${state.save.swarm.sansFinRecord}.`
+        : `${porte.nbVagues} vagues de monstres, puis ${porte.nomBoss}. La vague suivante arrive quand TOUT est tombé.`
+    )
+  );
+  if (!porte.sansFin && (state.save.swarm.termines[porte.niveau] ?? 0) === 0) {
+    modal.appendChild(
+      el(
+        'div',
+        'ligne-modal',
+        `1ʳᵉ COMPLÉTION : +${porte.recompensePremiere.plumes} ${THEME.prestige.nom} ET +${porte.recompensePremiere.dores} ${THEME.dore.pluriel}`
+      )
+    );
+  }
+  modal.appendChild(el('div', 'ligne-modal', 'K.O. = retour à l’Antre, butin conservé.'));
+
+  const btnEntrer = el('button', 'btn btn-modal affordable', 'ENTRER ⚔');
+  btnEntrer.addEventListener('click', () => {
+    fermerModal();
+    surEntrer();
+  });
+  modal.appendChild(btnEntrer);
+  const btnAnnuler = el('button', 'btn btn-modal', 'PAS ENCORE…');
+  btnAnnuler.addEventListener('click', fermerModal);
+  modal.appendChild(btnAnnuler);
+}
+
+/** Panneau de fin de donjon : temps, dégâts, butin, rejouer/retour. */
+export function ouvrirFinDonjon(
+  stats: {
+    nomPorte: string;
+    tempsSec: number;
+    degatsPris: number;
+    dores: number;
+    plumes: number;
+    premiere: boolean;
+  },
+  actions: { surRejouer: () => void; surRetour: () => void }
+): void {
+  ouvrir();
+  modal.appendChild(el('h2', '', `🏆 ${stats.nomPorte} — VICTOIRE !`));
+  if (stats.premiere) {
+    modal.appendChild(el('div', 'ligne-modal', '✨ PREMIÈRE COMPLÉTION — UNE NOUVELLE PORTE S’OUVRE'));
+  }
+  const minutes = Math.floor(stats.tempsSec / 60);
+  const secondes = Math.round(stats.tempsSec % 60);
+  modal.appendChild(el('div', 'ligne-modal', `TEMPS : ${minutes} MIN ${secondes} S`));
+  modal.appendChild(el('div', 'ligne-modal', `DÉGÂTS SUBIS : ${formatNombre(stats.degatsPris, 0)}`));
+  modal.appendChild(
+    el('div', 'ligne-modal', `BUTIN : ${formatNombre(stats.dores, 0)} ${THEME.dore.pluriel}${stats.plumes > 0 ? ` + ${stats.plumes} ${THEME.prestige.nom}` : ''}`)
+  );
+  const btnRejouer = el('button', 'btn btn-modal', 'REJOUER CETTE PORTE');
+  btnRejouer.addEventListener('click', () => {
+    fermerModal();
+    actions.surRejouer();
+  });
+  modal.appendChild(btnRejouer);
+  const btnRetour = el('button', 'btn btn-modal affordable', 'RETOUR À L’ANTRE');
+  btnRetour.addEventListener('click', () => {
+    fermerModal();
+    actions.surRetour();
+  });
+  modal.appendChild(btnRetour);
+}
+
 /** La boutique du ponton (touche B pendant la pêche) : cannes, appâts,
  *  pêcheurs automatiques — comme dans le Birb original. */
 export function ouvrirBoutiquePeche(): void {
@@ -461,7 +546,7 @@ export function ouvrirProfil(): void {
   const lignes = [
     `TEMPS DE JEU : ${temps}`,
     `NIVEAU : ${state.save.heros.niveau}`,
-    `MEILLEUR ÉTAGE D'EXPÉDITION : ${state.save.meilleurEtage}`,
+    `PORTES DE L'ANTRE : ${Math.min(state.save.swarm.porteMax, 12)}/12${state.save.swarm.sansFinRecord > 0 ? ` — SANS-FIN : V.${state.save.swarm.sansFinRecord}` : ''}`,
     `${THEME.prestige.verbe} : ${state.save.rebirbs}`,
     `${THEME.prestige.nom} : ${formatNombre(state.save.plumes, 0)} (CUMUL ${formatNombre(state.save.cumulPlumes, 0)})`,
     `${THEME.dore.pluriel} : ${formatNombre(state.save.soldeDore, 0)}`,

@@ -9,9 +9,8 @@ import { jeu } from '../core/mode';
 import { state } from '../core/state';
 import { el, formatNombre } from '../core/utils';
 import { SPRITES_MONNAIES, SPRITE_PLUME, SPRITE_SMISKI_DORE } from '../core/sprites';
-import { biomeEtage } from '../core/decor';
 import { taux } from '../systems/economy';
-import { getEtage, getPv } from '../systems/combat';
+import { getPorte, getPv, getVague } from '../systems/donjon';
 import { sons } from '../systems/audio';
 import { sauvegarder } from '../systems/save';
 import { ajouterToast } from './toasts';
@@ -179,8 +178,19 @@ export function majHud(): void {
   const zone = ZONES[save.zone];
   const acces = zonesAccessibles();
   const indexAcces = acces.indexOf(save.zone);
-  if (jeu.mode === 'expedition') {
-    setTexte(zoneIndicateur, `EXPÉDITION ⚔ ÉT. ${getEtage()} — ${biomeEtage(getEtage()).nom}`);
+  if (jeu.mode === 'donjon') {
+    const porte = getPorte();
+    const vague = getVague();
+    setTexte(
+      zoneIndicateur,
+      porte
+        ? porte.sansFin
+          ? `∞ ${porte.nom} — VAGUE ${vague.index + 1}`
+          : `⚔ ${porte.nom} — VAGUE ${Math.min(vague.index + 1, vague.total)}/${vague.total}`
+        : '⚔ DONJON'
+    );
+  } else if (jeu.mode === 'antre') {
+    setTexte(zoneIndicateur, `🚪 L'ANTRE — PORTES : ${Math.min(save.swarm.porteMax, 12)}/12`);
   } else if (jeu.mode === 'peche') {
     setTexte(zoneIndicateur, `LE PONTON 🎣 NIV. ${save.peche.niveau}`);
   } else {
@@ -197,7 +207,7 @@ export function majHud(): void {
 
   // Niveau + PV : seulement en expédition — les cartes paisibles
   // restent paisibles (moins d'UI).
-  const enExped = jeu.mode === 'expedition';
+  const enExped = jeu.mode === 'donjon';
   barreXp.style.display = enExped ? '' : 'none';
   barrePv.style.display = enExped ? '' : 'none';
   if (enExped) {

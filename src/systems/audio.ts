@@ -54,4 +54,5 @@ export const sons = {
     bip(880, 0.08);
     bip(880, 0.08, 'square', 0.12);
   },
+  boss: () => [98, 82, 65, 98].forEach((f, i) => bip(f, 0.3, 'sawtooth', i * 0.18, 0.3)),
 };

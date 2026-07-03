@@ -17,7 +17,7 @@ import { sons } from '../systems/audio';
 import { sauvegarder } from '../systems/save';
 import { faireRebirb, rebirbDisponible } from '../systems/rebirb';
 import { COMPETENCES, xpPourNiveau } from '../data/combat';
-import { acheterCompetence, reinitialiserCompetences, resumeCombat } from '../systems/combat';
+import { acheterCompetence, reinitialiserCompetences, resumeCombat } from '../systems/donjon';
 
 let ongletActif: MonnaieId = 'popcorn';
 let sousOnglet: 'ameliorations' | 'rebirb' | 'competences' = 'ameliorations';

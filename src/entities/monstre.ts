@@ -12,6 +12,8 @@ export interface Monstre {
   xp: number;
   butin: number;
   boss: boolean;
+  /** élite : ×5 PV, halo pulsant, lâche un coffre (plan 10 §1) */
+  elite: boolean;
   /** Cooldown avant sa prochaine attaque (s). */
   tAttaque: number;
   /** Temps restant avant de changer de direction d'errance (s). */

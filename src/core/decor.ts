@@ -65,18 +65,14 @@ export function decorZone(zoneIndex: number): HTMLCanvasElement {
   return canvas;
 }
 
-/** Décor d'un étage d'expédition : les biomes tournent en boucle. */
-export function decorExpedition(etage: number): HTMLCanvasElement {
-  const biome = (etage - 1) % BIOMES_EXPEDITION.length;
-  const cle = `biome-${biome}`;
+/** Décor d'un biome de donjon (index dans BIOMES_EXPEDITION). */
+export function decorBiome(biome: number): HTMLCanvasElement {
+  const index = biome % BIOMES_EXPEDITION.length;
+  const cle = `biome-${index}`;
   let canvas = cache.get(cle);
   if (!canvas) {
-    canvas = genererDecor(BIOMES_EXPEDITION[biome], 7777 + biome * 313);
+    canvas = genererDecor(BIOMES_EXPEDITION[index], 7777 + index * 313);
     cache.set(cle, canvas);
   }
   return canvas;
-}
-
-export function biomeEtage(etage: number): BiomeDef {
-  return BIOMES_EXPEDITION[(etage - 1) % BIOMES_EXPEDITION.length];
 }

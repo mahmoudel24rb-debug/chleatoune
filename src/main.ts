@@ -3,7 +3,7 @@
 // et la pêche (vue de côté).
 
 import './style.css';
-import { CONFIG } from './data/config';
+import { CONFIG, INDEX_DONJON } from './data/config';
 import { autoDebloque } from './data/progression';
 import { RARETES } from './data/poissons';
 import { initCanvas } from './core/canvas';
@@ -13,7 +13,7 @@ import { initInput, surTouche } from './core/input';
 import { jeu } from './core/mode';
 import { state } from './core/state';
 import { dist } from './core/utils';
-import { decorExpedition, decorZone } from './core/decor';
+import { decorBiome, decorZone } from './core/decor';
 import {
   SPRITES_DOUGHCAT,
   SPRITES_HEROINE,
@@ -29,7 +29,17 @@ import type { Compagnon } from './systems/compagnons';
 import { getChats, getYuumi, majCompagnons } from './systems/compagnons';
 import { entitesZoneActive, majSpawner } from './systems/spawner';
 import { crediter, encaisserCollectible } from './systems/economy';
-import { enExpedition, getCoffres, getEtage, getMonstres, majCombat } from './systems/combat';
+import {
+  enDonjon,
+  getBoss,
+  getCoffres,
+  getMonstres,
+  getPorte,
+  getVague,
+  majDonjon,
+  _debugDegats,
+} from './systems/donjon';
+import { restaurerScene } from './systems/antre';
 import {
   actionPeche,
   appatEquipe,
@@ -82,6 +92,7 @@ initOverlays();
 initHud();
 initInteractions();
 amenagerCartes();
+restaurerScene(); // recharger en plein donjon ramène dans l'Antre
 construirePanneau();
 centrerCamera(birb.x, birb.y, ecran.largeur, ecran.hauteur);
 initCreation(); // premier lancement : écran d'accueil (créer / se connecter)
@@ -138,40 +149,42 @@ function update(dt: number): void {
     majInteractions(); // vide l'infobulle pendant la pêche
   } else {
     majBirb(dt);
-    majSpawner(dt);
 
-    // Aimant (mode AUTO) + collecte — boucle à l'envers car on retire.
-    // Les distances partent du centre du corps, pas des pieds du sprite.
-    const liste = entitesZoneActive();
-    const centre = centreBirb();
-    for (let i = liste.length - 1; i >= 0; i--) {
-      const c = liste[i];
-      c.age += dt;
-      if (state.save.auto && autoDebloque(state.save.rebirbs)) {
-        const d = dist(c.x, c.y, centre.x, centre.y);
-        if (d < state.stats.rayonAimant && d > 1) {
-          c.x += ((centre.x - c.x) / d) * CONFIG.auto.vitesseAimant * dt;
-          c.y += ((centre.y - c.y) / d) * CONFIG.auto.vitesseAimant * dt;
+    // Le ramassage n'existe que dans le monde (l'Antre et le donjon
+    // n'ont pas de collectibles au sol).
+    if (jeu.mode === 'monde') {
+      majSpawner(dt);
+      const liste = entitesZoneActive();
+      const centre = centreBirb();
+      for (let i = liste.length - 1; i >= 0; i--) {
+        const c = liste[i];
+        c.age += dt;
+        if (state.save.auto && autoDebloque(state.save.rebirbs)) {
+          const d = dist(c.x, c.y, centre.x, centre.y);
+          if (d < state.stats.rayonAimant && d > 1) {
+            c.x += ((centre.x - c.x) / d) * CONFIG.auto.vitesseAimant * dt;
+            c.y += ((centre.y - c.y) / d) * CONFIG.auto.vitesseAimant * dt;
+          }
+        }
+        if (dist(c.x, c.y, centre.x, centre.y) < CONFIG.birb.rayonRamassage) {
+          liste.splice(i, 1);
+          encaisserCollectible(c);
         }
       }
-      if (dist(c.x, c.y, centre.x, centre.y) < CONFIG.birb.rayonRamassage) {
-        liste.splice(i, 1);
-        encaisserCollectible(c);
+
+      // Générateur auto (talent) : smiski passifs
+      if (state.stats.generateur > 0) {
+        accGenerateur += dt;
+        if (accGenerateur >= 1) {
+          accGenerateur -= 1;
+          crediter('popcorn', state.stats.generateur, 0, 0, true);
+        }
       }
     }
 
     majCompagnons(dt);
-    majCombat(dt);
+    majDonjon(dt);
     majInteractions();
-
-    // Générateur auto (talent) : smiski passifs
-    if (state.stats.generateur > 0) {
-      accGenerateur += dt;
-      if (accGenerateur >= 1) {
-        accGenerateur -= 1;
-        crediter('popcorn', state.stats.generateur, 0, 0, true);
-      }
-    }
 
     suivreCamera(birb.x, birb.y, ecran.largeur, ecran.hauteur, dt);
   }
@@ -256,7 +269,11 @@ function dessinerMonde(): void {
 
   ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, ecran.largeur, ecran.hauteur);
-  const decor = enExpedition() ? decorExpedition(getEtage()) : decorZone(state.save.zone);
+  const decor = enDonjon()
+    ? decorBiome(getPorte()?.biome ?? 0)
+    : jeu.mode === 'antre'
+      ? decorZone(INDEX_DONJON)
+      : decorZone(state.save.zone);
   ctx.drawImage(decor, -camX, -camY);
 
   // Structures et objets interactifs (portail, panneaux, marchand…)
@@ -277,8 +294,8 @@ function dessinerMonde(): void {
     ctx.drawImage(sprite, x - taille / 2, y - taille / 2, taille, taille);
   }
 
-  // Coffres et monstres de l'expédition
-  if (enExpedition()) {
+  // Coffres et monstres du donjon
+  if (enDonjon()) {
     for (const coffre of getCoffres()) {
       const sprite = SPRITES_COFFRES[coffre.rarete];
       const x = Math.round(coffre.x - camX);
@@ -291,6 +308,16 @@ function dessinerMonde(): void {
       const taille = sprite.width * m.echelle;
       const mx = Math.round(m.x - camX);
       const my = Math.round(m.y - camY);
+      // culling simple : hors caméra = pas de dessin (plan 10 §7)
+      if (mx < -80 || mx > ecran.largeur + 80 || my < -80 || my > ecran.hauteur + 80) continue;
+      // halo pulsant des élites (plan 10 §1)
+      if (m.elite) {
+        const phase = (Math.sin(performance.now() / 250) + 1) / 2;
+        ctx.fillStyle = `rgba(255, 217, 74, ${0.18 + phase * 0.2})`;
+        ctx.beginPath();
+        ctx.ellipse(mx, my + taille / 2 - 2, taille / 2 + 8, 10 + phase * 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.fillStyle = 'rgba(0,0,0,0.25)';
       ctx.beginPath();
       ctx.ellipse(mx, my + taille / 2 - 2, taille / 3, 4, 0, 0, Math.PI * 2);
@@ -300,14 +327,14 @@ function dessinerMonde(): void {
       const yBarre = my - taille / 2 - 8;
       ctx.fillStyle = '#1a1420';
       ctx.fillRect(mx - largeurBarre / 2 - 1, yBarre - 1, largeurBarre + 2, 6);
-      ctx.fillStyle = m.boss ? '#f2d16b' : '#e5533f';
+      ctx.fillStyle = m.boss ? '#f2d16b' : m.elite ? '#ffd94a' : '#e5533f';
       ctx.fillRect(mx - largeurBarre / 2, yBarre, Math.max(0, (m.pv / m.pvMax) * largeurBarre), 4);
     }
   }
 
-  // Les compagnons, derrière l'héroïne (barre de PV en expédition)
+  // Les compagnons, derrière l'héroïne (barre de PV en donjon)
   for (const chat of getChats()) {
-    dessinerCompagnon(ctx, chat, SPRITES_DOUGHCAT, camX, camY, enExpedition());
+    dessinerCompagnon(ctx, chat, SPRITES_DOUGHCAT, camX, camY, enDonjon());
   }
   const yuumi = getYuumi();
   if (yuumi) dessinerCompagnon(ctx, yuumi, SPRITES_YUUMI, camX, camY);
@@ -335,6 +362,45 @@ function dessinerMonde(): void {
   ctx.restore();
 
   dessinerFx(ctx, camX, camY);
+
+  // Habillage du donjon : barre de boss, textes de phase
+  if (enDonjon()) {
+    const boss = getBoss();
+    const vague = getVague();
+    if (boss) {
+      // barre de PV du boss en haut, segmentée (plan 09 §5.3)
+      const largeur = Math.min(520, ecran.largeur - 80);
+      const x = Math.round((ecran.largeur - largeur) / 2);
+      const y = 66;
+      ctx.font = '9px "Press Start 2P", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#1a1420';
+      ctx.fillRect(x - 3, y - 3, largeur + 6, 20);
+      ctx.fillStyle = '#e5533f';
+      ctx.fillRect(x, y, Math.max(0, (boss.pv / boss.pvMax) * largeur), 14);
+      ctx.strokeStyle = '#1a1420';
+      ctx.lineWidth = 2;
+      for (let s = 1; s < 10; s++) {
+        const sx = x + (largeur / 10) * s;
+        ctx.beginPath();
+        ctx.moveTo(sx, y);
+        ctx.lineTo(sx, y + 14);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#ffd94a';
+      ctx.fillText(getPorte()?.nomBoss ?? 'BOSS', ecran.largeur / 2, y - 8);
+    }
+    if (vague.phase === 'pause' || vague.phase === 'victoire') {
+      ctx.font = '16px "Press Start 2P", monospace';
+      ctx.textAlign = 'center';
+      const texte = vague.phase === 'victoire' ? '🏆 VICTOIRE !' : 'VAGUE SUIVANTE…';
+      ctx.fillStyle = 'rgba(10,10,14,0.6)';
+      const lm = ctx.measureText(texte).width;
+      ctx.fillRect(ecran.largeur / 2 - lm / 2 - 14, ecran.hauteur / 2 - 90, lm + 28, 34);
+      ctx.fillStyle = '#ffd94a';
+      ctx.fillText(texte, ecran.largeur / 2, ecran.hauteur / 2 - 66);
+    }
+  }
 }
 
 function dessinerPeche(): void {
@@ -494,4 +560,5 @@ demarrerBoucle(update, render);
   state,
   jeu,
   cloud: { disponible: cloudDisponible, pousser: pousserCloud },
+  donjon: { getPorte, getVague, getBoss, degats: _debugDegats },
 };

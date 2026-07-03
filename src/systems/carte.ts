@@ -17,7 +17,7 @@ import {
   SPRITES_PANNEAUX,
 } from '../core/structures';
 import { enregistrer } from './interactions';
-import { entrerExpedition, sortirExpedition } from './combat';
+import { amenagerAntre, entrerAntre } from './antre';
 import { entrerPeche } from './peche';
 import { coutProchainPalier, NID_MAX, nourrirNid } from './nid';
 import { sauvegarder } from './save';
@@ -40,8 +40,8 @@ export function amenagerCartes(): void {
       rayon: 90,
       sprite: () => SPRITE_PORTAIL,
       texte: () =>
-        `ENTRER EN EXPÉDITION (ÉTAGE ${Math.max(1, state.save.meilleurEtage)})\nDes monstres, des coffres, de l'XP.`,
-      action: entrerExpedition,
+        `ENTRER DANS L'ANTRE\n${state.save.swarm.porteMax > 12 ? 'Les 12 portes sont ouvertes… et le Fil Sans Fin.' : `Portes ouvertes : ${Math.min(state.save.swarm.porteMax, 12)}/12`}`,
+      action: entrerAntre,
     },
     {
       id: 'autel',
@@ -63,18 +63,8 @@ export function amenagerCartes(): void {
     },
   ]);
 
-  // ---------------------------------------------- expédition : sortie
-  enregistrer('expedition', [
-    {
-      id: 'sortie',
-      x: 1200,
-      y: 560,
-      rayon: 80,
-      sprite: () => SPRITE_PORTAIL,
-      texte: () => "SORTIR DE L'EXPÉDITION",
-      action: sortirExpedition,
-    },
-  ]);
+  // ---------------------------------------------- l'Antre (13 portes)
+  amenagerAntre();
 
   // ---------------------------------------------- prairie : talents + ponton
   const talentsInteractifs = TALENTS.map((t, i) => {

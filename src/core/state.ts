@@ -63,6 +63,24 @@ export interface SaveData {
   nid: number;
   /** Timestamp de la dernière sauvegarde, pour les gains hors-ligne. */
   derniereVisite: number;
+  // ---- v3 (refonte donjons, plans 09-13) ----
+  swarm: {
+    /** plus haute porte débloquée (1..13) */
+    porteMax: number;
+    /** niveau de porte → nombre de complétions */
+    termines: Record<number, number>;
+    /** meilleure vague atteinte à la porte sans fin */
+    sansFinRecord: number;
+    /** copies de combat choisies (plan 13, max 3) */
+    escouade: string[];
+  };
+  /** id de parchemin → niveau (plan 11) — PERMANENT (survit à la recouture) */
+  parchemins: Record<string, number>;
+  /** id de sort → niveau (0 = non débloqué) — PERMANENT */
+  sorts: Record<string, number>;
+  evolutions: Record<string, boolean>;
+  /** biomeId → unités de compagnons (plan 13) — PERMANENT */
+  compagnons: Record<string, number>;
 }
 
 function zeros(): Record<MonnaieId, number> {
@@ -99,6 +117,11 @@ export function defautsSave(): SaveData {
     peche: { niveau: 1, xp: 0, dex: {}, canne: 0, appats: {}, appatActif: null, pecheurs: 0 },
     nid: 0,
     derniereVisite: 0,
+    swarm: { porteMax: 1, termines: {}, sansFinRecord: 0, escouade: [] },
+    parchemins: {},
+    sorts: {},
+    evolutions: {},
+    compagnons: {},
   };
 }
 

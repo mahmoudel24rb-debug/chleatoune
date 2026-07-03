@@ -35,11 +35,9 @@ export function progresserQuete(type: TypeQuete, montant: number): void {
   }
 }
 
-/** Pour les quêtes « étage » : le progrès est le meilleur étage terminé. */
-export function signalerEtageTermine(etage: number): void {
-  for (const q of state.save.quetes.actives) {
-    if (q.type === 'etage') q.progres = Math.max(q.progres, Math.min(q.objectif, etage));
-  }
+/** Un donjon (une porte de l'Antre) vient d'être terminé. */
+export function signalerDonjonTermine(): void {
+  progresserQuete('donjon', 1);
 }
 
 export function queteTexte(q: { type: TypeQuete; objectif: number }): string {
