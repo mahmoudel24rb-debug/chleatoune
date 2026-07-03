@@ -22,30 +22,66 @@ export const THEME = {
   dore: { nom: 'SMISKI DORÉ', pluriel: 'SMISKI DORÉS', couleur: '#f2d16b' },
   /** Le message de la salle du château (donjon). PERSONNALISE-MOI :
    *  c'est l'endroit parfait pour une lettre cachée. */
+  /** L'inscription sur la porte du château : une ÉNIGME pendant tout le
+   *  jeu — sa vraie signification tombe au chapitre 7 (il n'y a jamais
+   *  eu de monstre dans l'Atelier ; juste ce qu'il a laissé). */
   messageChateau: [
-    'LE MONSTRE A ÉTÉ ENLEVÉ.',
+    'ICI DORT CE QUE LE COUTURIER',
+    'AIMAIT LE PLUS AU MONDE.',
     '',
-    'Par Chléatoune, évidemment.',
-    'Personne ne fait le poids.',
+    'N’ENTRE PAS ARMÉE.',
+    'ENTRE COUSUE.',
     '',
-    '(Psst : ce message se change dans',
-    'src/data/config.ts → messageChateau)',
+    '— gravé en fil d’or, six trous',
+    'd’aiguille en forme de serrure',
   ],
   /** Le Grand Couturier (plan 15) — le créateur disparu de la tapisserie. */
   couturier: { nom: 'LE GRAND COUTURIER' },
   /** La lettre de l'Atelier (plan 15 §7), page par page, ligne par ligne.
-   *  ⚠ PLACEHOLDER VOLONTAIRE : c'est TA lettre, à la première personne,
-   *  signée de ta main. Jamais générée, jamais inventée par une IA. */
+   *  Version « fiction » signée du Grand Couturier — REMPLAÇABLE par une
+   *  vraie lettre personnelle avant d'offrir (c'est le moment cadeau). */
   lettreAtelier: [
     [
-      '[À ÉCRIRE — C’EST TA LETTRE]',
+      'À celle qui a trouvé les six bobines,',
       '',
-      '(Cette page se remplit dans',
-      'src/data/config.ts → THEME.lettreAtelier.',
-      'Écris-la toi-même, page par page —',
-      'c’est le moment cadeau du jeu.)',
+      'Si tu lis ceci, alors le monde tient',
+      'encore debout — et c’est grâce à toi.',
+      'Je le savais. Je t’ai cousue exprès.',
+      '',
+      'On me demandait souvent pourquoi',
+      'je brodais un monde si grand pour',
+      'une si petite poupée. Je répondais :',
+      '« Vous verrez. » Voilà. Vous voyez.',
     ],
-    ['[PAGE 2 — À ÉCRIRE]'],
+    [
+      'La tapisserie s’usera encore. C’est',
+      'sa nature, et ce n’est pas grave :',
+      'je ne t’ai pas faite pour empêcher',
+      'les accrocs. Je t’ai faite pour que',
+      'quelqu’un, toujours, choisisse de',
+      'recoudre.',
+      '',
+      'L’Effilocheuse défait. Toi, tu',
+      'reprises. Entre les deux, il y a',
+      'tout ce qui compte : les doughcats,',
+      'les concerts, les poissons qui',
+      'boudent, les matins dorés.',
+    ],
+    [
+      'Prends soin d’eux. Prends soin de',
+      'toi. Recouds souvent, râle un peu,',
+      'et laisse toujours une lumière',
+      'allumée sur le ponton.',
+      '',
+      'Cet atelier est à toi maintenant.',
+      'Il l’a toujours été.',
+      '',
+      'Avec tout le fil de mon cœur,',
+      '',
+      '— LE GRAND COUTURIER',
+      '(P.S. : le Mercier te fera 20 %.',
+      'Il dira que non. Insiste.)',
+    ],
   ] as string[][],
   monnaies: {
     popcorn: { nom: 'SMISKI', couleur: '#d9edb2' },

@@ -6,7 +6,8 @@
 // le bas : les gros sont rares). Les variantes SHINY valent ×10.
 //
 // PERSONNALISATION : les `blague` de révélation (le « I caught a sea
-// bass! » d'Animal Crossing) sont TES textes — [À ÉCRIRE].
+// bass! » d'Animal Crossing) se remplacent librement — private jokes
+// bienvenues.
 
 export type RaretePoisson = 'commun' | 'rare' | 'epique' | 'legendaire';
 export type OmbrePoisson = 'S' | 'M' | 'L' | 'XL' | 'AILERON';
@@ -25,7 +26,7 @@ export interface EspecePoisson {
   creneau: CreneauJour | null;
   /** fourchette de taille [min, max] en cm */
   cm: [number, number];
-  /** la ligne de la carte de révélation — [À ÉCRIRE : TOI] */
+  /** la ligne de la carte de révélation (personnalisable à volonté) */
   blague: string;
 }
 
@@ -37,22 +38,22 @@ export const RARETES: Record<RaretePoisson, { poids: number; valeur: number; xp:
 };
 
 export const POISSONS: EspecePoisson[] = [
-  { id: 'sardine', nom: 'SARDINE ROSE', rarete: 'commun', couleurs: ['#ff8ac2', '#ffd0e8'], ombre: 'S', bande: 'bord', creneau: null, cm: [8, 15], blague: '[À ÉCRIRE — ta blague de sardine]' },
-  { id: 'goujon', nom: 'GOUJON GRIS', rarete: 'commun', couleurs: ['#9aa2b3', '#c8ccd4'], ombre: 'S', bande: 'bord', creneau: null, cm: [6, 13], blague: '[À ÉCRIRE]' },
-  { id: 'perche', nom: 'PERCHE MENTHE', rarete: 'commun', couleurs: ['#7dbb5c', '#c8e6a0'], ombre: 'M', bande: 'milieu', creneau: 'jour', cm: [15, 30], blague: '[À ÉCRIRE]' },
-  { id: 'anchois', nom: 'ANCHOIS BLEUET', rarete: 'commun', couleurs: ['#5a8fe8', '#a8d8ff'], ombre: 'S', bande: 'milieu', creneau: 'matin', cm: [7, 12], blague: '[À ÉCRIRE]' },
-  { id: 'truite', nom: 'TRUITE PÊCHE', rarete: 'commun', couleurs: ['#f2b48a', '#ffe3cf'], ombre: 'M', bande: 'milieu', creneau: 'matin', cm: [20, 40], blague: '[À ÉCRIRE]' },
-  { id: 'crevette', nom: 'CREVETTE TIMIDE', rarete: 'commun', couleurs: ['#ff9a76', '#ffd0b8'], ombre: 'S', bande: 'bord', creneau: 'nuit', cm: [5, 9], blague: '[À ÉCRIRE]' },
-  { id: 'poulpe', nom: 'MINI-POULPE VIOLET', rarete: 'rare', couleurs: ['#b48ae0', '#d8c0f2'], ombre: 'M', bande: 'large', creneau: 'nuit', cm: [12, 25], blague: '[À ÉCRIRE]' },
-  { id: 'koi', nom: 'KOÏ IMPÉRIALE', rarete: 'rare', couleurs: ['#f2932e', '#ffffff'], ombre: 'L', bande: 'milieu', creneau: null, cm: [30, 60], blague: '[À ÉCRIRE]' },
-  { id: 'chat', nom: 'POISSON-CHAT BRIOCHE', rarete: 'rare', couleurs: ['#c8934a', '#e8c58a'], ombre: 'L', bande: 'bord', creneau: 'soir', cm: [25, 55], blague: '[À ÉCRIRE]' },
-  { id: 'ballon', nom: 'POISSON-BALLON BOUDEUR', rarete: 'rare', couleurs: ['#e5a0a0', '#f2d0d0'], ombre: 'M', bande: 'large', creneau: 'jour', cm: [10, 22], blague: '[À ÉCRIRE]' },
-  { id: 'hippocampe', nom: 'HIPPOCAMPE TURQUOISE', rarete: 'rare', couleurs: ['#39c5bb', '#a0e8e2'], ombre: 'S', bande: 'large', creneau: null, cm: [8, 16], blague: '[À ÉCRIRE]' },
-  { id: 'axolotl', nom: 'AXOLOTL SOURIANT', rarete: 'epique', couleurs: ['#ffb4c8', '#ffe3cf'], ombre: 'M', bande: 'bord', creneau: 'matin', cm: [15, 28], blague: '[À ÉCRIRE]' },
-  { id: 'meduse', nom: 'MÉDUSE ÉTOILÉE', rarete: 'epique', couleurs: ['#b48ae0', '#e0d0f2'], ombre: 'M', bande: 'large', creneau: 'nuit', cm: [12, 24], blague: '[À ÉCRIRE]' },
-  { id: 'lune', nom: 'POISSON-LUNE', rarete: 'epique', couleurs: ['#dce8f2', '#f2d16b'], ombre: 'XL', bande: 'large', creneau: 'jour', cm: [60, 120], blague: '[À ÉCRIRE]' },
-  { id: 'dragon', nom: 'DRAGON D’EAU', rarete: 'epique', couleurs: ['#39c5bb', '#c8f2ee'], ombre: 'L', bande: 'large', creneau: 'soir', cm: [40, 80], blague: '[À ÉCRIRE]' },
-  { id: 'miku', nom: 'LA LÉGENDE DORÉE', rarete: 'legendaire', couleurs: ['#f2d16b', '#fff6c9'], ombre: 'AILERON', bande: 'large', creneau: null, cm: [100, 180], blague: '[À ÉCRIRE — LA blague légendaire]' },
+  { id: 'sardine', nom: 'SARDINE ROSE', rarete: 'commun', couleurs: ['#ff8ac2', '#ffd0e8'], ombre: 'S', bande: 'bord', creneau: null, cm: [8, 15], blague: 'Une sardine rose ! Elle rougit, ou c’est de naissance ?' },
+  { id: 'goujon', nom: 'GOUJON GRIS', rarete: 'commun', couleurs: ['#9aa2b3', '#c8ccd4'], ombre: 'S', bande: 'bord', creneau: null, cm: [6, 13], blague: 'Un goujon gris ! Le poisson préféré des lundis.' },
+  { id: 'perche', nom: 'PERCHE MENTHE', rarete: 'commun', couleurs: ['#7dbb5c', '#c8e6a0'], ombre: 'M', bande: 'milieu', creneau: 'jour', cm: [15, 30], blague: 'Une perche menthe ! Fraîche… mais pas à l’haleine.' },
+  { id: 'anchois', nom: 'ANCHOIS BLEUET', rarete: 'commun', couleurs: ['#5a8fe8', '#a8d8ff'], ombre: 'S', bande: 'milieu', creneau: 'matin', cm: [7, 12], blague: 'Un anchois bleuet ! Petit œil ? Non : GRAND caractère.' },
+  { id: 'truite', nom: 'TRUITE PÊCHE', rarete: 'commun', couleurs: ['#f2b48a', '#ffe3cf'], ombre: 'M', bande: 'milieu', creneau: 'matin', cm: [20, 40], blague: 'Une truite pêche ! Une truite-fruit. La nature s’amuse.' },
+  { id: 'crevette', nom: 'CREVETTE TIMIDE', rarete: 'commun', couleurs: ['#ff9a76', '#ffd0b8'], ombre: 'S', bande: 'bord', creneau: 'nuit', cm: [5, 9], blague: 'Une crevette timide ! Elle s’excuse d’avoir mordu.' },
+  { id: 'poulpe', nom: 'MINI-POULPE VIOLET', rarete: 'rare', couleurs: ['#b48ae0', '#d8c0f2'], ombre: 'M', bande: 'large', creneau: 'nuit', cm: [12, 25], blague: 'Un mini-poulpe violet ! Huit bras et AUCUN câlin. Vexant.' },
+  { id: 'koi', nom: 'KOÏ IMPÉRIALE', rarete: 'rare', couleurs: ['#f2932e', '#ffffff'], ombre: 'L', bande: 'milieu', creneau: null, cm: [30, 60], blague: 'Une koï impériale ! Elle exige d’être relâchée avec le titre.' },
+  { id: 'chat', nom: 'POISSON-CHAT BRIOCHE', rarete: 'rare', couleurs: ['#c8934a', '#e8c58a'], ombre: 'L', bande: 'bord', creneau: 'soir', cm: [25, 55], blague: 'Un poisson-chat brioche ! Il ronronne ou il mijote ?' },
+  { id: 'ballon', nom: 'POISSON-BALLON BOUDEUR', rarete: 'rare', couleurs: ['#e5a0a0', '#f2d0d0'], ombre: 'M', bande: 'large', creneau: 'jour', cm: [10, 22], blague: 'Un poisson-ballon boudeur ! Il gonfle. C’est sa réponse à tout.' },
+  { id: 'hippocampe', nom: 'HIPPOCAMPE TURQUOISE', rarete: 'rare', couleurs: ['#39c5bb', '#a0e8e2'], ombre: 'S', bande: 'large', creneau: null, cm: [8, 16], blague: 'Un hippocampe turquoise ! Le seul cheval qui tient dans une poche.' },
+  { id: 'axolotl', nom: 'AXOLOTL SOURIANT', rarete: 'epique', couleurs: ['#ffb4c8', '#ffe3cf'], ombre: 'M', bande: 'bord', creneau: 'matin', cm: [15, 28], blague: 'Un axolotl souriant ! Il sourit même à l’hameçon. Respect.' },
+  { id: 'meduse', nom: 'MÉDUSE ÉTOILÉE', rarete: 'epique', couleurs: ['#b48ae0', '#e0d0f2'], ombre: 'M', bande: 'large', creneau: 'nuit', cm: [12, 24], blague: 'Une méduse étoilée ! Un ciel de poche, avec des tentacules.' },
+  { id: 'lune', nom: 'POISSON-LUNE', rarete: 'epique', couleurs: ['#dce8f2', '#f2d16b'], ombre: 'XL', bande: 'large', creneau: 'jour', cm: [60, 120], blague: 'Un poisson-lune ! La pleine lune a mordu. Prévenir la marée.' },
+  { id: 'dragon', nom: 'DRAGON D’EAU', rarete: 'epique', couleurs: ['#39c5bb', '#c8f2ee'], ombre: 'L', bande: 'large', creneau: 'soir', cm: [40, 80], blague: 'Un dragon d’eau ! Il crache des bulles. C’est déjà ça.' },
+  { id: 'miku', nom: 'LA LÉGENDE DORÉE', rarete: 'legendaire', couleurs: ['#f2d16b', '#fff6c9'], ombre: 'AILERON', bande: 'large', creneau: null, cm: [100, 180], blague: 'LA LÉGENDE DORÉE !!! Elle existait. ELLE EXISTAIT VRAIMENT !' },
 ];
 
 export function xpPourNiveauPeche(niveau: number): number {
