@@ -87,7 +87,7 @@ export function initHud(): void {
   // ligne de suivi (plan 15/16) : Fil Rouge + indice de chasse, en haut
   // à gauche, modes monde/antre seulement
   suivi = el('div', 'suivi cache');
-  document.getElementById('game-area')!.appendChild(suivi);
+  document.getElementById('game-wrap')!.appendChild(suivi);
 
   // la hotbar de consommables (plan 18 §4) : donjon uniquement
   hotbarEl = el('div', 'hotbar cache');
@@ -102,7 +102,7 @@ export function initHud(): void {
     hotbarEl.appendChild(slot);
     slotsHotbar.push({ slot, icone, compteur, cd });
   }
-  document.getElementById('game-area')!.appendChild(hotbarEl);
+  document.getElementById('game-wrap')!.appendChild(hotbarEl);
   flecheGauche = document.getElementById('fleche-gauche') as HTMLButtonElement;
   flecheDroite = document.getElementById('fleche-droite') as HTMLButtonElement;
   flecheGauche.addEventListener('click', () => changerZone(-1));

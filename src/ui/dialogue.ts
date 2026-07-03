@@ -67,7 +67,7 @@ function construire(): void {
   suiteEl.textContent = '▼ [E]';
   droite.append(nomEl, texteEl, suiteEl);
   boite.append(portraitEl, droite);
-  document.getElementById('game-area')!.appendChild(boite);
+  document.getElementById('game-wrap')!.appendChild(boite);
   boite.addEventListener('click', avancerDialogue);
 }
 

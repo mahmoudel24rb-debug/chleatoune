@@ -27,6 +27,19 @@ vague normale **15–35 s** · boss **45–90 s** · porte complète **4–8 min
    pression max ≈ dégâts/0,4 s : la foule fait peur, ne one-burst jamais.
    Avant/après (pilote identique) : K.O. porte 1 à 42 s → victoire sans mort.
 
+## 2026-07-03 — chantiers v3/v4 (plans 14-18)
+
+- Plan 14 : défi ×1,4 et malédictions ×2,5 max, cloisonnés aux dorés/XP
+  de la porte — vérifié E2E (récap ×1,50 exact avec PRESSE+TEMPO, smiski
+  non multipliés). L'Étoile de Cristal n'interagit avec rien de neuf.
+- Plan 18 : `SWARM.consommables.cdGlobal = 8 s` (partagé). Rappel du
+  garde-fou : A(n) suppose ZÉRO consommable ; la porte n+1 tentée en
+  avance avec hotbar pleine doit rester « difficile mais possible » —
+  **à chronométrer à la main au prochain playtest** ; si gratuite,
+  monter cdGlobal à 12 s AVANT de toucher aux effets des plats.
+- Pêche v3 : lutte 3-6 s (capture 26 %/s), fenêtre 0,75 s, tolérances
+  de cannes ×1/1,15/1,35/1,6 — ressenti à valider manette en main.
+
 ### Notes pour la prochaine passe
 
 - Porte 1 totale = 1 min 25 : SOUS la fourchette 4-8 min, assumé (porte
