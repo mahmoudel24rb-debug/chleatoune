@@ -3,7 +3,7 @@
 // Yuumi, la gardienne de la forêt.
 
 import { THEME } from '../data/config';
-import { niveau, state } from '../core/state';
+import { state } from '../core/state';
 import { clamp, formatNombre } from '../core/utils';
 import { crediter } from './economy';
 import { bonusActif } from './calendrier';
@@ -38,7 +38,7 @@ export function nourrirNid(): boolean {
 }
 
 /** Gains hors-ligne, calculés une fois au chargement (plan « nid »).
- *  Formule : palier × (1 + doughcats) × 3 smiski/minute, plafonné à 12 h,
+ *  Formule : palier × 3 smiski/minute, plafonné à 12 h,
  *  doublé par le talent RÊVES FERTILES. Yuumi ajoute des brindilles. */
 export function appliquerGainsHorsLigne(): void {
   const save = state.save;
@@ -48,8 +48,7 @@ export function appliquerGainsHorsLigne(): void {
 
   // DIMANCHE DU MÉTIER (plan 16 §5) : le Métier tisse ×1,5
   const facteur = (save.talents['t_offline'] ? 2 : 1) * (bonusActif('metier') ? 1.5 : 1);
-  const unites = Math.max(niveau('p_doughcat'), save.compagnons.prairie ?? 0);
-  const smiski = Math.round(save.nid * (1 + unites) * 3 * minutes * facteur);
+  const smiski = Math.round(save.nid * 3 * minutes * facteur);
   const brindilles = Math.round(save.nid * minutes * facteur);
   if (smiski <= 0) return;
 
