@@ -124,3 +124,13 @@ export const PORTE_SANS_FIN = PORTES[PORTES.length - 1];
 export function porteParNiveau(niveau: number): PorteDef | undefined {
   return PORTES.find((p) => p.niveau === niveau);
 }
+
+/** Nom d'affichage d'un boss par son id (la Déchirure pioche au hasard). */
+export function nomBossParId(bossId: string): string {
+  return PORTES.find((p) => p.bossId === bossId)?.nomBoss ?? 'BOSS';
+}
+
+/** Les 12 boss de porte (le vivier de la Déchirure — Aurelion Sol à part). */
+export function viviersBossDechirure(): string[] {
+  return PORTES.filter((p) => !p.sansFin).map((p) => p.bossId);
+}

@@ -130,11 +130,19 @@ export const SWARM = {
     reculOndeChoc: 120, // …de ça (0 dégât : bouton panique, pas un sort)
   },
 
-  // ---- porte sans fin (anti-plafond)
+  // ---- porte sans fin : LA DÉCHIRURE (anti-plafond)
   sansFin: {
     budget: 1.12, // budget de la vague v = B(12) × budget^v
     stats: 1.06, // multiplicateur de stats = H(12) × stats^v
-    bossToutesLes: 5, // un boss toutes les N vagues
+    bossToutesLes: 5, // une vague de boss toutes les N vagues
+    // les boss sont tirés AU HASARD parmi les 12 des portes ; plus on
+    // descend, plus ils viennent en bande (jamais deux fois le même)
+    bossSupplementaireTous: 10, // +1 boss simultané toutes les N vagues
+    maxBossSimultanes: 4,
+    aurelionToutesLes: 25, // AURELION SOL mène la danse aux vagues 25, 50…
+    // PV TOTAL d'une vague multi-boss = ×ce facteur, réparti entre eux
+    // (3 boss à PV plein = mur ; 3 boss aux 43 % chacun = spectacle)
+    pvTotalMultiBoss: 1.3,
   },
 
   // ---- compagnons de biome (plan 13)

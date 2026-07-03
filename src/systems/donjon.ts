@@ -12,7 +12,13 @@ import { COMBAT, xpPourNiveau, type CompetenceId } from '../data/combat';
 import { MONSTRES, typeMonstre, type MonstreDef } from '../data/monstres';
 import { bossDef, type PatternId } from '../data/boss';
 import { SWARM, budgetVague, multDegats, multPV } from '../data/swarm';
-import { PORTE_SANS_FIN, type CompositionEntree, type PorteDef } from '../data/portes';
+import {
+  PORTE_SANS_FIN,
+  nomBossParId,
+  viviersBossDechirure,
+  type CompositionEntree,
+  type PorteDef,
+} from '../data/portes';
 import { jeu } from '../core/mode';
 import { recalculerStats, state } from '../core/state';
 import { Grille } from '../core/grille';
@@ -181,6 +187,11 @@ export function getBoss(): Monstre | null {
   return monstres.find((m) => m.boss) ?? null;
 }
 
+/** Tous les boss vivants (la Déchirure en aligne plusieurs). */
+export function getBosses(): Monstre[] {
+  return monstres.filter((m) => m.boss);
+}
+
 // -------------------------------------------------- niveau effectif
 // La sans-fin scale à l'infini : stats = H(12) × sansFin.stats^vague.
 function multPVCourant(): number {
@@ -283,7 +294,13 @@ function compositionVague(index: number): CompositionEntree[] {
 
 // ----------------------------------------------------------- spawn
 
-function creerMonstre(typeId: string, elite: boolean, boss = false): Monstre {
+function creerMonstre(
+  typeId: string,
+  elite: boolean,
+  boss = false,
+  bossId?: string,
+  multPVBoss = 1
+): Monstre {
   const type = typeMonstre(typeId);
   const mPV = multPVCourant() * (elite ? SWARM.multElitePV : 1);
   const mDeg = multDegatsCourant() * (elite ? SWARM.multEliteDegats : 1);
@@ -294,7 +311,7 @@ function creerMonstre(typeId: string, elite: boolean, boss = false): Monstre {
   const x = clamp(birb.x + Math.cos(angle) * rayon, marge, CONFIG.monde.largeur - marge);
   const y = clamp(birb.y + Math.sin(angle) * rayon, marge, CONFIG.monde.hauteur - marge);
 
-  const defBoss = boss && porte ? bossDef(porte.bossId) : null;
+  const defBoss = boss && porte ? bossDef(bossId ?? porte.bossId) : null;
 
   // promotion en ARCHIMONSTRE (plan 14 §3) : jamais un boss, jamais la
   // vague 1 de la porte 1, jamais deux dans la même vague
@@ -313,7 +330,7 @@ function creerMonstre(typeId: string, elite: boolean, boss = false): Monstre {
 
   const pvMax = Math.ceil(
     defBoss
-      ? SWARM.pvBossBase * SWARM.multBoss * multPVCourant() * defBoss.pv
+      ? SWARM.pvBossBase * SWARM.multBoss * multPVCourant() * defBoss.pv * multPVBoss
       : type.pv * mPV * (archi ? A.multPV : 1)
   );
   return {
@@ -381,11 +398,35 @@ function lancerVague(index: number): void {
   const derniere = !porte.sansFin && index === porte.nbVagues - 1;
   const bossSansFin =
     porte.sansFin && vagueSansFin > 0 && vagueSansFin % SWARM.sansFin.bossToutesLes === 0;
-  if (derniere || bossSansFin) {
+  if (derniere) {
     phase = 'boss';
     monstres.push(creerMonstre('golem', false, true));
     sons.boss();
     ajouterToast(`☠ ${porte.nomBoss} !`);
+  } else if (bossSansFin) {
+    // LA DÉCHIRURE : boss tirés au hasard parmi les 12 des portes —
+    // et plus on descend, plus ils viennent EN BANDE. Aurelion Sol
+    // mène la danse aux vagues 25, 50, 75…
+    phase = 'boss';
+    const SF = SWARM.sansFin;
+    const nbBoss = Math.min(
+      1 + Math.floor(vagueSansFin / SF.bossSupplementaireTous),
+      SF.maxBossSimultanes
+    );
+    const vivier = viviersBossDechirure();
+    const choisis: string[] = [];
+    if (vagueSansFin % SF.aurelionToutesLes === 0) choisis.push(porte.bossId); // aurelionsol
+    while (choisis.length < nbBoss && vivier.length > 0) {
+      const index2 = Math.floor(Math.random() * vivier.length);
+      choisis.push(vivier.splice(index2, 1)[0]); // jamais deux fois le même
+    }
+    const multPVBoss = SF.pvTotalMultiBoss / choisis.length;
+    for (const bossId of choisis) {
+      monstres.push(creerMonstre('golem', false, true, bossId, multPVBoss));
+    }
+    sons.boss();
+    const noms = choisis.map((id) => nomBossParId(id).split(',')[0]);
+    ajouterToast(choisis.length === 1 ? `☠ ${nomBossParId(choisis[0])} !` : `☠☠ ${noms.join(' & ')} !`);
   } else {
     phase = 'combat';
   }
@@ -396,8 +437,10 @@ function lancerVague(index: number): void {
 export function entrerDonjon(p: PorteDef): void {
   porte = p;
   jeu.mode = 'donjon';
-  // sprites GLB chargés à l'entrée, jamais au boot (plan 10 §6)
+  // sprites GLB chargés à l'entrée, jamais au boot (plan 10 §6) — la
+  // Déchirure pioche parmi TOUS les boss, elle précharge tout le vivier
   prechargerDonjon(MONSTRES.map((m) => m.id), p.bossId);
+  if (p.sansFin) for (const bossId of viviersBossDechirure()) prechargerDonjon([], bossId);
   // malédictions : uniquement sur une porte déjà terminée, jamais la
   // sans-fin (elle scale déjà) — le modal fait la police, ceci re-vérifie
   if (p.sansFin || (state.save.swarm.termines[p.niveau] ?? 0) === 0) maledictions = [];
@@ -559,7 +602,7 @@ function victoire(): void {
     doresRamasses += porte.recompensePremiere.dores;
     recalculerStats();
     ajouterToast(
-      porte.niveau === 12 ? '🚪 LE FIL SANS FIN SE DÉVOILE…' : '🚪 UNE NOUVELLE PORTE S’OUVRE…'
+      porte.niveau === 12 ? '🚪 LA DÉCHIRURE SE DÉVOILE…' : '🚪 UNE NOUVELLE PORTE S’OUVRE…'
     );
   }
   // ---- bonus défi + malédictions (plan 14) : dorés et XP de la porte
@@ -1281,6 +1324,15 @@ function majProjectiles(dt: number): void {
       }
     }
   }
+}
+
+/** Hook de test : saute à la vague n de la Déchirure (multi-boss). */
+export function _debugVagueSansFin(n: number): void {
+  if (!porte?.sansFin) return;
+  monstres.length = 0;
+  fileAttente = [];
+  vagueSansFin = n;
+  lancerVague(n);
 }
 
 /** Hook de test (overlay F1 / e2e) : inflige des dégâts à l'héroïne. */

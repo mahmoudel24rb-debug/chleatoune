@@ -37,6 +37,7 @@ import { crediter, encaisserCollectible } from './systems/economy';
 import {
   enDonjon,
   getBoss,
+  getBosses,
   getCoffres,
   getMonstres,
   getPorte,
@@ -44,7 +45,9 @@ import {
   graceHeroine,
   majDonjon,
   _debugDegats,
+  _debugVagueSansFin,
 } from './systems/donjon';
+import { nomBossParId } from './data/portes';
 import { restaurerScene } from './systems/antre';
 import {
   actionPeche,
@@ -554,20 +557,22 @@ function dessinerMonde(): void {
 
   // Habillage du donjon : barre de boss, textes de phase
   if (enDonjon()) {
-    const boss = getBoss();
+    const bosses = getBosses();
     const vague = getVague();
-    if (boss) {
-      // barre de PV du boss en haut, segmentée (plan 09 §5.3) — sous la
-      // barre de NIV./XP (top 46 + ~26 px), sinon elles se chevauchent
+    if (bosses.length > 0) {
+      // barre de PV du/des boss en haut, segmentée (plan 09 §5.3) — la
+      // Déchirure en aligne plusieurs : la barre cumule leurs PV
       const largeur = Math.min(520, ecran.largeur - 80);
       const x = Math.round((ecran.largeur - largeur) / 2);
       const y = 104;
+      const pvTotal = bosses.reduce((s, b) => s + Math.max(0, b.pv), 0);
+      const pvMaxTotal = bosses.reduce((s, b) => s + b.pvMax, 0);
       ctx.font = '9px "Press Start 2P", monospace';
       ctx.textAlign = 'center';
       ctx.fillStyle = '#1a1420';
       ctx.fillRect(x - 3, y - 3, largeur + 6, 20);
       ctx.fillStyle = '#e5533f';
-      ctx.fillRect(x, y, Math.max(0, (boss.pv / boss.pvMax) * largeur), 14);
+      ctx.fillRect(x, y, Math.max(0, (pvTotal / pvMaxTotal) * largeur), 14);
       ctx.strokeStyle = '#1a1420';
       ctx.lineWidth = 2;
       for (let s = 1; s < 10; s++) {
@@ -578,7 +583,11 @@ function dessinerMonde(): void {
         ctx.stroke();
       }
       ctx.fillStyle = '#ffd94a';
-      ctx.fillText(getPorte()?.nomBoss ?? 'BOSS', ecran.largeur / 2, y - 8);
+      const titre =
+        bosses.length === 1
+          ? (getPorte()?.sansFin ? nomBossParId(bosses[0].bossId ?? '') : (getPorte()?.nomBoss ?? 'BOSS'))
+          : bosses.map((b) => nomBossParId(b.bossId ?? '').split(',')[0]).join(' & ');
+      ctx.fillText(titre, ecran.largeur / 2, y - 8);
     }
     if (vague.phase === 'pause' || vague.phase === 'victoire') {
       ctx.font = '16px "Press Start 2P", monospace';
@@ -994,6 +1003,7 @@ demarrerBoucle(update, render);
     escouade: getEscouade,
     projectiles: nbProjectilesActifs,
     telegraphes: () => getTelegraphes().length,
+    vagueSansFin: _debugVagueSansFin,
   },
   rebirb: faireRebirb,
   debug: {
