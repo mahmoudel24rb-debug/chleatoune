@@ -100,7 +100,11 @@ birb-like/
   sinks de surplus Miku/brindilles/minerai — 2 bonus temporaires 10 min
   (CONCERT = récolte compagnons ×1,25, PROJECTEURS = rayon AUTO ×1,4),
   2 préparations de porte (PV/respawn des copies, consommées à la FIN du
-  run — pas à l'entrée, un reload ne les perd pas), socles cosmétiques ◆.
+  run — pas à l'entrée, un reload ne les perd pas), socles cosmétiques ◆,
+  et la **Teinturerie** : 5 teintures PERMANENTES de la tenue (lavis
+  `source-atop` via `core/sprites.ts → teinterFrame()`, PAS de
+  `ctx.filter` — Safari ne le gère pas et la destinataire joue sur
+  MacBook ; survivent à la recouture comme tout `save.matieres`).
   Un bonus actif ne se relance pas. Aucun effet sur les dégâts de
   l'héroïne (cloisonnement éco/combat).
 - **donjon** : combat à vagues (voir §5).
@@ -244,7 +248,7 @@ telegraphes,projectiles,escouade,degats}`, `rebirb`, `debug.archiChance`).
 | `test_plans10-13.py` | Mercier, parchemins/sorts, tireurs/télégraphes, boss, escouade, récolte à distance, adoption, recouture |
 | `test_v3v4.py` | succès, fil rouge ch. 1, calendrier, fil secret, besace/cuisine/vente, malédictions ×1,50 exact, archi forcé, hotbar, aquarium, recouture |
 | `test_dev.py` | mode dev F1 (mot de passe, crédits) |
-| `test_matieres.py` | Atelier des matières : achats, buff non relançable, rayon AUTO, préparations qui survivent au reload et consommées à la victoire |
+| `test_matieres.py` | Atelier des matières : achats, buff non relançable, rayon AUTO, préparations qui survivent au reload et consommées à la victoire, Teinturerie (achat/porter/origine) |
 | `chrono_jalon.py <save> <x> <y> <nom>` | chronos d'équilibrage (pilote qui kite) |
 
 Règle : **les 3 premières suites doivent être vertes avant tout push.**

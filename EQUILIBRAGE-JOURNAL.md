@@ -82,3 +82,14 @@ ensuite) :
    consommées à la FIN du run (victoire/K.O./sortie), pas à l'entrée —
    un rechargement en plein donjon ne les perd plus.
    Suite E2E dédiée : `tests-e2e/test_matieres.py`.
+
+## 2026-07-03 — la Teinturerie (sink brindilles)
+
+5 teintures PERMANENTES de la tenue (100 % cosmétique, zéro impact
+combat/économie) : ROSE THÉ 800🪵+600 Miku · BLEU NUIT 1 200🪵+900 Miku ·
+MENTHE GIVRÉE 1 600🪵+600⛏ · LAVANDE 2 200🪵+1 500 Miku · FIL D'OR
+3 000🪵+1 500⛏. Total : 8 800 brindilles — les brindilles étaient le
+parent pauvre (un seul usage : 300 pour PROJECTEURS). Coûts pensés
+« milieu de partie » : Yuumi + hérissons récoltent ~large en forêt ;
+si le playtest montre que c'est trop cher avant la porte 6, baisser
+ROSE THÉ (la porte d'entrée du système) avant les autres.

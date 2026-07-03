@@ -144,6 +144,22 @@ with sync_playwright() as p:
     verifier("90 minerai débités", ej(page, "state.save.soldes.minerai") == minerai_avant - 90)
     verifier("compteur SOCLES RECOUSUS : 1/12",
              "SOCLES RECOUSUS : 1/12" in page.locator("#modal").inner_text())
+    # ---- Teinturerie : achat = porté aussitôt, PORTER/retour d'origine
+    brindille_avant = ej(page, "state.save.soldes.brindille")
+    page.locator("#modal button", has_text="COUDRE").first.click()  # ROSE THÉ
+    page.wait_for_timeout(400)
+    verifier("teinture ROSE THÉ possédée", ej(page, "state.save.matieres.teintures.includes('rose_the')"))
+    verifier("teinture portée à l'achat", ej(page, "state.save.matieres.teintureActive") == "rose_the")
+    verifier("800 brindilles débitées", ej(page, "state.save.soldes.brindille") == brindille_avant - 800)
+    page.get_by_role("button", name="REPRENDRE LA TENUE D’ORIGINE").click()
+    page.wait_for_timeout(400)
+    verifier("tenue d'origine reprise", ej(page, "state.save.matieres.teintureActive") is None)
+    page.locator("#modal button", has_text="PORTER").first.click()
+    page.wait_for_timeout(400)
+    verifier("teinture reportée sans repayer",
+             ej(page, "state.save.matieres.teintureActive") == "rose_the"
+             and ej(page, "state.save.soldes.brindille") == brindille_avant - 800)
+
     page.get_by_role("button", name="FERMER").click()
     page.wait_for_timeout(300)
 

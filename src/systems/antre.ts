@@ -94,7 +94,7 @@ export function amenagerAntre(): void {
     rayon: 95,
     sprite: () => SPRITES_PANNEAUX.disponible,
     etiquette: () => 'ATELIER DES MATIÈRES',
-    texte: () => 'DÉPENSER MIKU, BRINDILLES ET MINERAI\nBonus de récolte, forge et socles de portes.',
+    texte: () => 'DÉPENSER MIKU, BRINDILLES ET MINERAI\nBonus, forge, socles… et la Teinturerie.',
     action: ouvrirAtelierMatieres,
   });
 

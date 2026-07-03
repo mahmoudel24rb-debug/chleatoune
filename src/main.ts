@@ -23,6 +23,7 @@ import {
   framesCompagnon,
   SPRITE_SMISKI_DORE,
   TAILLE_OBJET,
+  teinterFrame,
   type PoseMonstre,
 } from './core/sprites';
 import { SPRITES_COFFRES } from './core/structures';
@@ -76,7 +77,7 @@ import { garantirQuetes } from './systems/quetes';
 import { initSucces, majSucces } from './systems/succes';
 import { cibleAideChasse, majChasse } from './systems/chasses';
 import { cercleScene, initFilRouge, majFilRouge } from './systems/filrouge';
-import { tickMatieres } from './systems/matieres';
+import { couleurTeintureActive, tickMatieres } from './systems/matieres';
 import { avancerDialogue, couperDialogue, dialogueEnCours, majDialogue } from './ui/dialogue';
 import { ajouterParticules, dessinerFx, majFx } from './systems/fx';
 import { nomArchimonstre } from './data/archimonstres';
@@ -515,12 +516,15 @@ function dessinerMonde(): void {
   ctx.fill();
 
   const vue = SPRITES_HEROINE[birb.direction];
-  const frame =
+  // la Teinturerie : lavis de couleur sur la tenue (cache dans sprites.ts)
+  const frame = teinterFrame(
     birb.attaqueT > 0
       ? vue.attaque[Math.floor(performance.now() / 130) % 2]
       : birb.enMouvement
         ? vue.marche[Math.floor(birb.animT * 8) % 2]
-        : vue.idle;
+        : vue.idle,
+    couleurTeintureActive()
+  );
   const bob = birb.enMouvement ? 0 : Math.round(Math.sin(performance.now() / 400) * 2);
   ctx.save();
   ctx.translate(bx, by + bob);
@@ -844,7 +848,7 @@ function dessinerPeche(): void {
   const hx = Math.round(largeur * p.x);
   const hy = yPonton + hPonton - 8;
   const vue = SPRITES_HEROINE.profil;
-  const frame = vue.idle;
+  const frame = teinterFrame(vue.idle, couleurTeintureActive());
   ctx.save();
   ctx.translate(hx, hy + Math.round(Math.sin(performance.now() / 500) * 2));
   ctx.drawImage(frame, -Math.round(frame.width / 2), -frame.height + 6);

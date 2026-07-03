@@ -121,6 +121,8 @@ function fusionner(brut: unknown): SaveData {
         ...(d.matieres?.preparations ?? {}),
       },
       portesReparees: Array.isArray(d.matieres?.portesReparees) ? d.matieres.portesReparees : [],
+      teintures: Array.isArray(d.matieres?.teintures) ? d.matieres.teintures : [],
+      teintureActive: d.matieres?.teintureActive ?? null,
     },
   };
   // Migration v1 → v2 : le bonus passif passe sur les plumes cumulées.

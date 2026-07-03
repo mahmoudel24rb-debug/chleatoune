@@ -1,4 +1,4 @@
-import { BUFFS_MATIERES, BONUS_MATIERES, PREPARATIONS_MATIERES, type BuffMatiereId, type CoutMatieres, type PreparationMatiereId } from '../data/matieres';
+import { BUFFS_MATIERES, BONUS_MATIERES, PREPARATIONS_MATIERES, TEINTURES, type BuffMatiereId, type CoutMatieres, type PreparationMatiereId } from '../data/matieres';
 import { THEME, type MonnaieId } from '../data/config';
 import { recalculerStats, state } from '../core/state';
 import { formatNombre } from '../core/utils';
@@ -109,6 +109,43 @@ export function acheterPreparationMatiere(id: PreparationMatiereId): boolean {
   state.save.matieres.preparations[id] = true;
   sons.achat();
   ajouterToast(`${def.nom} PRÊT POUR LA PROCHAINE PORTE.`);
+  sauvegarder();
+  return true;
+}
+
+// ------------------------------------------- la Teinturerie (cosmétique)
+
+export function teinturePossedee(id: string): boolean {
+  return state.save.matieres.teintures.includes(id);
+}
+
+/** Couleur du lavis porté par l'héroïne, ou null (tenue d'origine). */
+export function couleurTeintureActive(): string | null {
+  const id = state.save.matieres.teintureActive;
+  if (!id) return null;
+  return TEINTURES.find((t) => t.id === id)?.couleur ?? null;
+}
+
+/** Achat permanent — la teinture est portée aussitôt (c'est le plaisir). */
+export function acheterTeinture(id: string): boolean {
+  const def = TEINTURES.find((t) => t.id === id);
+  if (!def || teinturePossedee(id) || !payerCout(def.cout)) return false;
+  state.save.matieres.teintures.push(id);
+  state.save.matieres.teintureActive = id;
+  sons.niveau();
+  ajouterToast(`✂ TEINTURE ${def.nom} COUSUE — ELLE TE VA À MERVEILLE !`);
+  sauvegarder();
+  return true;
+}
+
+/** Porter une teinture possédée, ou null pour la tenue d'origine. */
+export function porterTeinture(id: string | null): boolean {
+  if (id !== null && !teinturePossedee(id)) return false;
+  if (state.save.matieres.teintureActive === id) return true;
+  state.save.matieres.teintureActive = id;
+  sons.achat();
+  const def = id ? TEINTURES.find((t) => t.id === id) : null;
+  ajouterToast(def ? `TEINTURE ${def.nom} PORTÉE.` : 'TENUE D’ORIGINE RETROUVÉE.');
   sauvegarder();
   return true;
 }

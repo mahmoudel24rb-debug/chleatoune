@@ -95,6 +95,40 @@ export const SPRITES_HEROINE: Record<DirectionHeroine, JeuDeFrames> = {
   profil: secours(),
 };
 
+// ------------------------------------------------------------------
+// TEINTURES (la Teinturerie de l'Atelier des matières) : lavis de
+// couleur en source-atop — préserve l'ombrage, ne touche que les pixels
+// opaques, et marche PARTOUT (pas de ctx.filter : Safari ne le gère
+// pas, la destinataire joue sur MacBook). Cache par couleur × frame ;
+// clé faible sur la frame car les PNG remplacent les secours en async.
+// ------------------------------------------------------------------
+
+const ALPHA_TEINTE = 0.3;
+const cacheTeintes = new Map<string, WeakMap<HTMLCanvasElement, HTMLCanvasElement>>();
+
+/** La frame teintée (couleur du lavis), ou la frame telle quelle si null. */
+export function teinterFrame(frame: HTMLCanvasElement, couleur: string | null): HTMLCanvasElement {
+  if (!couleur) return frame;
+  let parFrame = cacheTeintes.get(couleur);
+  if (!parFrame) {
+    parFrame = new WeakMap();
+    cacheTeintes.set(couleur, parFrame);
+  }
+  const connue = parFrame.get(frame);
+  if (connue) return connue;
+  const c = document.createElement('canvas');
+  c.width = frame.width;
+  c.height = frame.height;
+  const ctx = c.getContext('2d')!;
+  ctx.drawImage(frame, 0, 0);
+  ctx.globalCompositeOperation = 'source-atop';
+  ctx.globalAlpha = ALPHA_TEINTE;
+  ctx.fillStyle = couleur;
+  ctx.fillRect(0, 0, c.width, c.height);
+  parFrame.set(frame, c);
+  return c;
+}
+
 /** Agrandit un PNG en gardant les pixels nets (zoom entier). */
 function agrandir(img: HTMLImageElement, facteur: number): HTMLCanvasElement {
   const c = document.createElement('canvas');

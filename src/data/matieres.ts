@@ -68,3 +68,55 @@ export function coutReparationPorte(niveau: number): CoutMatieres {
     minerai: 90 * niveau,
   };
 }
+
+// ------------------------------------------- la Teinturerie (cosmétique)
+// Lavis de couleur sur la tenue de l'héroïne : achat PERMANENT (survit à
+// la recouture, comme tout `save.matieres`), une seule teinture portée à
+// la fois. Sink principal des brindilles — le parent pauvre des monnaies.
+
+export interface TeintureDef {
+  id: string;
+  nom: string;
+  desc: string;
+  /** couleur du lavis (appliqué en source-atop, voir core/sprites.ts) */
+  couleur: string;
+  cout: CoutMatieres;
+}
+
+export const TEINTURES: TeintureDef[] = [
+  {
+    id: 'rose_the',
+    nom: 'ROSE THÉ',
+    desc: 'Un bain de pétales. La classique des ateliers.',
+    couleur: '#ff9eb5',
+    cout: { brindille: 800, graine: 600 },
+  },
+  {
+    id: 'bleu_nuit',
+    nom: 'BLEU NUIT',
+    desc: 'Teinte à la belle étoile. Sobre, mystérieuse.',
+    couleur: '#6f8fe8',
+    cout: { brindille: 1200, graine: 900 },
+  },
+  {
+    id: 'menthe',
+    nom: 'MENTHE GIVRÉE',
+    desc: 'Fraîche comme un matin de Congère.',
+    couleur: '#7fe0c3',
+    cout: { brindille: 1600, minerai: 600 },
+  },
+  {
+    id: 'lavande',
+    nom: 'LAVANDE',
+    desc: 'Cousue main, séchée au soleil du Désert Doré.',
+    couleur: '#c09bf0',
+    cout: { brindille: 2200, graine: 1500 },
+  },
+  {
+    id: 'fil_dor',
+    nom: 'FIL D’OR',
+    desc: 'La touche finale des grandes couturières.',
+    couleur: '#ffd94a',
+    cout: { brindille: 3000, minerai: 1500 },
+  },
+];

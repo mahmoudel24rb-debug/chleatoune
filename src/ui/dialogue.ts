@@ -12,7 +12,9 @@ import {
   SPRITES_YUUMI,
   chargerSpritesGlb,
   frameGlb,
+  teinterFrame,
 } from '../core/sprites';
+import { couleurTeintureActive } from '../systems/matieres';
 
 const VITESSE_TEXTE = 45; // caractères par seconde
 
@@ -35,7 +37,7 @@ export function dialogueEnCours(): boolean {
 }
 
 function portraitPour(qui: string): HTMLCanvasElement | null {
-  if (qui === 'chleatoune') return SPRITES_HEROINE.face.idle;
+  if (qui === 'chleatoune') return teinterFrame(SPRITES_HEROINE.face.idle, couleurTeintureActive());
   if (qui === 'narrateur') return null;
   if (qui === 'mercier') return frameGlb('pnj_mercier', 'face', 'idle') ?? null;
   if (qui === 'effilocheuse') return frameGlb('b_velkoz', 'face', 'idle') ?? null;

@@ -33,7 +33,7 @@ import {
 import { bonusDuJour, faireOffrande, offrandeDisponible, offrandeDuJour } from '../systems/calendrier';
 import { NIVEAU_MAX_SORT, SORTS, multNiveauSort, type SortDef } from '../data/sorts';
 import { SWARM, coutNiveauSort, coutParchemin } from '../data/swarm';
-import { BUFFS_MATIERES, PREPARATIONS_MATIERES, coutReparationPorte, type BuffMatiereId } from '../data/matieres';
+import { BUFFS_MATIERES, PREPARATIONS_MATIERES, TEINTURES, coutReparationPorte, type BuffMatiereId } from '../data/matieres';
 import { PORTES } from '../data/portes';
 import {
   COMPAGNONS_BIOMES,
@@ -58,8 +58,11 @@ import { cloudDisponible, codeSync } from '../systems/cloud';
 import {
   acheterBuffMatiere,
   acheterPreparationMatiere,
+  acheterTeinture,
   peutPayerCout,
+  porterTeinture,
   reparerSoclePorte,
+  teinturePossedee,
   tempsBuffMatiere,
   texteCout,
 } from '../systems/matieres';
@@ -1109,6 +1112,40 @@ export function ouvrirAtelierMatieres(): void {
   const reparees = state.save.matieres.portesReparees.length;
   const totalSocles = PORTES.filter((p) => !p.sansFin).length;
   modal.appendChild(el('div', 'ligne-modal', `SOCLES RECOUSUS : ${reparees}/${totalSocles}`));
+
+  // ---- la Teinturerie : lavis PERMANENTS sur la tenue (sink brindilles)
+  modal.appendChild(el('div', 'ligne-modal', '— TEINTURERIE : LA TENUE —'));
+  for (const t of TEINTURES) {
+    const carte = el('div', 'carte');
+    const possedee = teinturePossedee(t.id);
+    const portee = state.save.matieres.teintureActive === t.id;
+    const titre = el('div', 'carte-nom', `${t.nom}${portee ? ' — PORTÉE ✂' : ''}`);
+    const pastille = el('span', '', ' ●');
+    pastille.style.color = t.couleur;
+    titre.appendChild(pastille);
+    carte.appendChild(titre);
+    carte.appendChild(el('div', 'carte-desc', t.desc));
+    const btn = el(
+      'button',
+      'btn btn-achat',
+      possedee ? (portee ? 'PORTÉE' : 'PORTER') : `COUDRE : ${texteCout(t.cout)}`
+    );
+    btn.disabled = portee || (!possedee && !peutPayerCout(t.cout));
+    btn.classList.toggle('affordable', !portee && (possedee || peutPayerCout(t.cout)));
+    btn.addEventListener('click', () => {
+      const ok = possedee ? porterTeinture(t.id) : acheterTeinture(t.id);
+      if (ok) ouvrirAtelierMatieres();
+    });
+    carte.appendChild(btn);
+    modal.appendChild(carte);
+  }
+  if (state.save.matieres.teintureActive) {
+    const btnOrigine = el('button', 'btn btn-achat affordable', 'REPRENDRE LA TENUE D’ORIGINE');
+    btnOrigine.addEventListener('click', () => {
+      if (porterTeinture(null)) ouvrirAtelierMatieres();
+    });
+    modal.appendChild(btnOrigine);
+  }
   const fermer = el('button', 'btn btn-modal', 'FERMER');
   fermer.addEventListener('click', fermerModal);
   modal.appendChild(fermer);

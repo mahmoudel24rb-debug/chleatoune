@@ -120,6 +120,9 @@ export interface SaveData {
     buffs: Record<BuffMatiereId, number>;
     preparations: Record<PreparationMatiereId, boolean>;
     portesReparees: number[];
+    /** Teinturerie : teintures possédées (PERMANENT) + celle portée. */
+    teintures: string[];
+    teintureActive: string | null;
   };
 }
 
@@ -180,6 +183,8 @@ export function defautsSave(): SaveData {
       buffs: { concert: 0, projecteurs: 0 },
       preparations: { renfort: false, kit: false },
       portesReparees: [],
+      teintures: [],
+      teintureActive: null,
     },
   };
 }
