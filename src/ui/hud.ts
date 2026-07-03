@@ -18,7 +18,7 @@ import { contenuSlot, cooldownGlobal, utiliserSlot } from '../systems/consommabl
 import { sons } from '../systems/audio';
 import { sauvegarder } from '../systems/save';
 import { ajouterToast } from './toasts';
-import { basculerParametres, ouvrirProfil } from './overlays';
+import { basculerParametres, ouvrirJournal, ouvrirProfil } from './overlays';
 
 type CleCapsule = MonnaieId | 'plume' | 'dore';
 
@@ -31,7 +31,7 @@ interface Capsule {
 const capsules = new Map<CleCapsule, Capsule>();
 let btnAuto: HTMLButtonElement;
 let zoneIndicateur: HTMLElement;
-let suivi: HTMLElement;
+let btnJournal: HTMLButtonElement;
 let hotbarEl: HTMLElement;
 const slotsHotbar: { slot: HTMLElement; icone: HTMLElement; compteur: HTMLElement; cd: HTMLElement }[] = [];
 let flecheGauche: HTMLButtonElement;
@@ -84,10 +84,13 @@ export function initHud(): void {
 
   zoneIndicateur = document.getElementById('zone-indicateur')!;
 
-  // ligne de suivi (plan 15/16) : Fil Rouge + indice de chasse, en haut
-  // à gauche, modes monde/antre seulement
-  suivi = el('div', 'suivi cache');
-  document.getElementById('game-wrap')!.appendChild(suivi);
+  // le LIVRE DE QUÊTES (bouton 📖 en bas à gauche, au-dessus de la barre
+  // de recouture) : remplace l'ancienne ligne de suivi qui chevauchait
+  // les capsules de monnaies. Il pulse quand quelque chose est en cours.
+  btnJournal = el('button', 'btn btn-journal cache', '📖') as HTMLButtonElement;
+  btnJournal.title = 'LIVRE DE QUÊTES (J)';
+  btnJournal.addEventListener('click', ouvrirJournal);
+  document.getElementById('game-wrap')!.appendChild(btnJournal);
 
   // la hotbar de consommables (plan 18 §4) : donjon uniquement
   hotbarEl = el('div', 'hotbar cache');
@@ -236,17 +239,15 @@ export function majHud(): void {
       zone.donjon ? 'HALL DU DONJON' : `${zone.nom} ${indexAcces + 1}/${acces.length}`
     );
   }
-  // ligne de suivi : Fil Rouge (plan 15) + indice de chasse (plan 16)
-  const lignesSuivi: string[] = [];
-  if (jeu.mode === 'monde' || jeu.mode === 'antre') {
-    const fil = ligneFilRouge();
-    if (fil) lignesSuivi.push(fil);
-    const indice = indiceCourant();
-    if (indice && jeu.mode === 'monde') lignesSuivi.push(indice);
+  // le livre de quêtes : visible hors donjon/pêche, pulse si quelque
+  // chose est en cours (Fil Rouge, chasse, quête du marchand)
+  const enJournal = jeu.mode === 'monde' || jeu.mode === 'antre';
+  btnJournal.classList.toggle('cache', !enJournal);
+  if (enJournal) {
+    const actif =
+      ligneFilRouge() !== null || indiceCourant() !== null || save.quetes.actives.some((q) => q.progres >= q.objectif);
+    btnJournal.classList.toggle('journal-actif', actif);
   }
-  const texteSuivi = lignesSuivi.join('\n');
-  if (suivi.textContent !== texteSuivi) suivi.textContent = texteSuivi;
-  suivi.classList.toggle('cache', texteSuivi === '');
 
   const enMonde = jeu.mode === 'monde';
   flecheGauche.style.display = enMonde && indexAcces > 0 ? '' : 'none';

@@ -277,7 +277,9 @@ canvas#game-area {
 /* -------------------------------------------------------------- toasts */
 #toasts {
   position: absolute;
-  bottom: 60px;
+  /* au-dessus de l'infobulle (100px) et de la barre de PV (46px) :
+     en donjon, tout ce petit monde cohabite au centre-bas */
+  bottom: 146px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -729,7 +731,7 @@ canvas#game-area {
 .dev-panneau {
   position: fixed;
   left: 10px;
-  bottom: 96px;
+  bottom: 180px;
   z-index: 60;
   background: rgba(20, 15, 28, 0.94);
   border: 2px solid #f2d16b;
@@ -753,20 +755,26 @@ canvas#game-area {
 .dev-btn { font-size: 8px; padding: 6px 8px; }
 
 /* ---- ligne de suivi (Fil Rouge + chasses, plans 15/16) ---- */
-.suivi {
+.btn-journal {
   position: absolute;
-  top: 56px;
   left: 12px;
+  bottom: 118px;
   z-index: 25;
-  background: rgba(20, 15, 28, 0.75);
-  border-left: 3px solid #f2d16b;
-  padding: 6px 10px;
-  font-size: 8px;
-  line-height: 1.8;
-  color: #e8e8f0;
-  white-space: pre-line;
-  max-width: 400px;
-  pointer-events: none;
+  width: 48px;
+  height: 48px;
+  font-size: 22px;
+  padding: 0;
+  background: rgba(20, 15, 28, 0.85);
+  border: 2px solid #6b5a8a;
+  cursor: pointer;
+}
+.btn-journal.journal-actif {
+  border-color: #f2d16b;
+  animation: pulse-journal 1.6s infinite;
+}
+@keyframes pulse-journal {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(242, 209, 107, 0.5); }
+  50% { box-shadow: 0 0 0 6px rgba(242, 209, 107, 0); }
 }
 
 /* ---- boîte de dialogue (plan 15) ---- */
@@ -802,9 +810,8 @@ canvas#game-area {
 /* ---- hotbar de consommables (plan 18) ---- */
 .hotbar {
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: 96px;
+  right: 12px;
+  bottom: 58px;
   z-index: 30;
   display: flex;
   gap: 8px;

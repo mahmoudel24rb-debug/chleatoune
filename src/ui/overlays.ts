@@ -13,7 +13,8 @@ import { spritePoisson } from '../core/sprites-poissons';
 import { setMaledictionsPorte } from '../systems/donjon';
 import { progressionSucces } from '../systems/succes';
 import { acheterChasse, chasseActive, indiceFilSecret } from '../systems/chasses';
-import { signalerActionFilRouge } from '../systems/filrouge';
+import { chapitreCourant, ligneFilRouge, progresCollecte, signalerActionFilRouge } from '../systems/filrouge';
+import { indiceCourant } from '../systems/chasses';
 import { PLATS, platDef } from '../data/cuisine';
 import {
   cuisiner,
@@ -1427,6 +1428,76 @@ export function ouvrirAtelier(premiere: boolean): void {
     });
     modal.appendChild(btn);
   }
+}
+
+// --------------------- le Livre de quêtes (bouton 📖 en bas à gauche)
+
+export function ouvrirJournal(): void {
+  ouvrir();
+  modal.appendChild(el('h2', '', '📖 LE LIVRE DE QUÊTES'));
+
+  // le Fil Rouge (plan 15)
+  modal.appendChild(el('div', 'ligne-modal', '— 🧵 LE FIL ROUGE —'));
+  const chapitre = chapitreCourant();
+  const ligne = ligneFilRouge();
+  if (ligne && chapitre) {
+    modal.appendChild(el('div', 'ligne-modal', `CHAPITRE ${chapitre.numero} : ${chapitre.titre}`));
+    modal.appendChild(el('div', 'ligne-modal', `➤ ${ligne.replace('🧵 ', '').replace(/^CH\. \d+ — /, '')}`));
+    const progres = progresCollecte();
+    if (progres > 0 && progres < 1) {
+      const barre = el('div', 'barre-parchemin');
+      const rempli = el('div', 'barre-parchemin-remplie');
+      rempli.style.width = `${Math.round(progres * 100)}%`;
+      barre.appendChild(rempli);
+      modal.appendChild(barre);
+    }
+    if (state.save.filRouge.bobines.length > 0) {
+      modal.appendChild(
+        el('div', 'ligne-modal', `BOBINES : ${state.save.filRouge.bobines.length}/6 sur la porte du château`)
+      );
+    }
+  } else if (state.save.filRouge.chapitre > 7) {
+    modal.appendChild(el('div', 'ligne-modal', 'L’ATELIER EST OUVERT. LA TAPISSERIE TIENT. ✔'));
+  } else {
+    modal.appendChild(el('div', 'ligne-modal', 'Rien pour l’instant… le monde murmurera quand il sera prêt.'));
+  }
+
+  // la chasse au trésor (plan 16 §4)
+  modal.appendChild(el('div', 'ligne-modal', '— 🗺 CHASSE AU TRÉSOR —'));
+  const indice = indiceCourant();
+  if (indice) {
+    const active = chasseActive();
+    modal.appendChild(el('div', 'ligne-modal', `ÉTAPE ${(active?.etape ?? 0) + 1}/3`));
+    modal.appendChild(el('div', 'ligne-modal', indice.replace('🗺 ', '')));
+  } else {
+    modal.appendChild(
+      el('div', 'ligne-modal', 'Aucune carte en cours. La Sphinge des Sables en vend, au désert doré.')
+    );
+  }
+
+  // les quêtes du marchand (désert)
+  if (state.save.quetes.actives.length > 0 && state.save.desert['d_marchand']) {
+    modal.appendChild(el('div', 'ligne-modal', '— ✦ QUÊTES DU MARCHAND —'));
+    for (const q of state.save.quetes.actives) {
+      const fini = q.progres >= q.objectif;
+      modal.appendChild(
+        el(
+          'div',
+          'ligne-modal',
+          `${fini ? '✔' : '•'} ${queteTexte(q)} — ${formatNombre(Math.min(q.progres, q.objectif), 0)}/${formatNombre(q.objectif, 0)}${fini ? ' (à récupérer !)' : ''}`
+        )
+      );
+    }
+  }
+
+  const fermer = el('button', 'btn btn-modal', 'FERMER (J)');
+  fermer.addEventListener('click', fermerModal);
+  modal.appendChild(fermer);
+}
+
+export function basculerJournal(): void {
+  if (modalOuvert()) fermerModal();
+  else ouvrirJournal();
 }
 
 // ------------------------- Calendrier, Sphinge & Succès (plan 16)

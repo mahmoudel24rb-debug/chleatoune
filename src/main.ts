@@ -84,6 +84,7 @@ import { construirePanneau, majPanneau } from './ui/panel';
 import {
   basculerBesace,
   basculerBoutiquePeche,
+  basculerJournal,
   basculerMercier,
   basculerMikudex,
   basculerParametres,
@@ -157,6 +158,9 @@ surTouche('KeyF', () => {
 });
 surTouche('KeyI', () => {
   if (!dialogueEnCours()) basculerBesace();
+});
+surTouche('KeyJ', () => {
+  if (!dialogueEnCours() && jeu.mode !== 'donjon' && jeu.mode !== 'peche') basculerJournal();
 });
 surTouche('Digit1', () => utiliserSlot(0));
 surTouche('Digit2', () => utiliserSlot(1));
@@ -553,10 +557,11 @@ function dessinerMonde(): void {
     const boss = getBoss();
     const vague = getVague();
     if (boss) {
-      // barre de PV du boss en haut, segmentée (plan 09 §5.3)
+      // barre de PV du boss en haut, segmentée (plan 09 §5.3) — sous la
+      // barre de NIV./XP (top 46 + ~26 px), sinon elles se chevauchent
       const largeur = Math.min(520, ecran.largeur - 80);
       const x = Math.round((ecran.largeur - largeur) / 2);
-      const y = 66;
+      const y = 104;
       ctx.font = '9px "Press Start 2P", monospace';
       ctx.textAlign = 'center';
       ctx.fillStyle = '#1a1420';

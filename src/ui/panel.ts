@@ -283,7 +283,8 @@ export function construirePanneau(): void {
     el('div', '', 'ZQSD / WASD / FLÈCHES : SE DÉPLACER'),
     el('div', '', 'E : INTERAGIR — ESPACE : PÊCHER'),
     el('div', '', 'C : AUTO — F : MIKUDEX — P : PROFIL'),
-    el('div', '', 'ÉCHAP : MENU — T : CHAT — F1 : DEBUG')
+    el('div', '', 'I : BESACE — J : QUÊTES — M : MERCIER'),
+    el('div', '', '1/2/3 : HOTBAR — ÉCHAP : MENU — F1 : DEBUG')
   );
   panneau.appendChild(footer);
 
