@@ -17,7 +17,11 @@ import { sons } from '../systems/audio';
 import { sauvegarder } from '../systems/save';
 import { faireRebirb, rebirbDisponible } from '../systems/rebirb';
 import { COMPETENCES, xpPourNiveau } from '../data/combat';
+import { COMPAGNONS_BIOMES, UNITES_MAX } from '../data/compagnons-biomes';
+import { ZONES } from '../data/config';
+import { jeu } from '../core/mode';
 import { acheterCompetence, reinitialiserCompetences, resumeCombat } from '../systems/donjon';
+import { biomesEnRecolte } from '../systems/compagnons';
 
 let ongletActif: MonnaieId = 'popcorn';
 let sousOnglet: 'ameliorations' | 'rebirb' | 'competences' = 'ameliorations';
@@ -57,6 +61,7 @@ let refsRebirb: {
   deblocageEl: HTMLElement;
   btn: HTMLButtonElement;
 } | null = null;
+let refsCompagnons: { entete: HTMLElement; lignes: HTMLElement[] } | null = null;
 
 function arbreDebloque(m: MonnaieId): boolean {
   return MONNAIES.indexOf(m) < zonesDebloquees(state.save.rebirbs);
@@ -154,6 +159,17 @@ function construireVueCompetences(): HTMLElement {
   });
   vue.appendChild(btnReset);
 
+  // section COMPAGNONS (plan 13 §6) : espèces, unités, rôle, état
+  vue.appendChild(el('h2', '', 'COMPAGNONS'));
+  const enteteCompagnons = el('div', 'rebirb-ligne');
+  vue.appendChild(enteteCompagnons);
+  const lignesCompagnons = COMPAGNONS_BIOMES.map(() => {
+    const ligne = el('div', 'rebirb-ligne');
+    vue.appendChild(ligne);
+    return ligne;
+  });
+  refsCompagnons = { entete: enteteCompagnons, lignes: lignesCompagnons };
+
   refsCompetences = { spEl, statsEl, niveauEl, lignes };
   return vue;
 }
@@ -204,6 +220,7 @@ export function construirePanneau(): void {
   onglets.clear();
   refsRebirb = null;
   refsCompetences = null;
+  refsCompagnons = null;
   if (!arbreDebloque(ongletActif)) ongletActif = 'popcorn';
 
   panneau.appendChild(el('h1', '', THEME.titre));
@@ -307,6 +324,32 @@ export function majPanneau(): void {
       ligne.btn.disabled = save.heros.sp < 1;
       ligne.btn.classList.toggle('affordable', save.heros.sp >= 1);
     }
+  }
+
+  // Section compagnons (plan 13 §6)
+  const rc = refsCompagnons;
+  if (rc) {
+    const n = biomesEnRecolte();
+    setTexte(
+      rc.entete,
+      n > 0 ? `🐾 TES COMPAGNONS RÉCOLTENT DANS ${n} BIOME${n > 1 ? 'S' : ''}` : '🐾 ADOPTE DES COMPAGNONS AUX PANNEAUX DES BIOMES'
+    );
+    COMPAGNONS_BIOMES.forEach((def, i) => {
+      const u = save.compagnons[def.id] ?? 0;
+      const auCombat = jeu.mode === 'donjon' && save.swarm.escouade.includes(def.id) && u >= UNITES_MAX;
+      const etat =
+        u === 0
+          ? '—'
+          : auCombat
+            ? 'AU COMBAT ⚔'
+            : jeu.mode === 'monde' && save.zone === def.zone
+              ? 'RÉCOLTE ICI'
+              : 'RÉCOLTE À DISTANCE';
+      setTexte(
+        rc.lignes[i],
+        `${def.nom} (${ZONES[def.zone].nom}) : ${u}/${UNITES_MAX} — ${etat}${u >= UNITES_MAX ? ' ★' : ''}`
+      );
+    });
   }
 
   // Cartes

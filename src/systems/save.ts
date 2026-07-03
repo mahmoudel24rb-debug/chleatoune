@@ -114,6 +114,11 @@ function fusionner(brut: unknown): SaveData {
     }
   }
   save.version = 3;
+  // Filet permanent (plan 13 §2) : d'anciens niveaux DOUGHCAT de la
+  // boutique (retirée) comptent toujours comme unités de la prairie.
+  save.compagnons.prairie = Math.max(save.compagnons.prairie ?? 0, save.niveaux['p_doughcat'] ?? 0);
+  // l'escouade ne référence que des espèces à 4/4 connues
+  save.swarm.escouade = save.swarm.escouade.filter((id) => (save.compagnons[id] ?? 0) >= 4);
   const zone = Math.floor(save.zone);
   // le donjon est toujours accessible ; les autres zones dépendent des
   // rebirbs (table `rebirbsRequis` de ZONES)

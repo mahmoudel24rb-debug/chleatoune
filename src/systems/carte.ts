@@ -5,6 +5,7 @@
 import { INDEX_DESERT, INDEX_DONJON, INDEX_FORET, THEME } from '../data/config';
 import { TALENTS } from '../data/talents';
 import { ARBRE_DESERT } from '../data/desert';
+import { COMPAGNONS_BIOMES, UNITES_MAX } from '../data/compagnons-biomes';
 import { recalculerStats, state } from '../core/state';
 import { formatNombre } from '../core/utils';
 import {
@@ -22,8 +23,17 @@ import { entrerPeche } from './peche';
 import { coutProchainPalier, NID_MAX, nourrirNid } from './nid';
 import { sauvegarder } from './save';
 import { sons } from './audio';
-import { ouvrirAutel, ouvrirChateau, ouvrirMarchand } from '../ui/overlays';
+import { ouvrirAdoption, ouvrirAutel, ouvrirChateau, ouvrirMarchand } from '../ui/overlays';
 import { ajouterToast } from '../ui/toasts';
+
+// Position du panneau d'adoption de chaque biome (plan 13 §3)
+const POSITIONS_ADOPTION: Record<string, { x: number; y: number }> = {
+  prairie: { x: 1980, y: 1150 },
+  scene: { x: 1200, y: 420 },
+  foret: { x: 520, y: 1180 },
+  mine: { x: 1200, y: 420 },
+  desert: { x: 2000, y: 640 },
+};
 
 function panneauEtat(possede: boolean, abordable: boolean): HTMLCanvasElement {
   if (possede) return SPRITES_PANNEAUX.possede;
@@ -156,6 +166,30 @@ export function amenagerCartes(): void {
       action: ouvrirMarchand,
     },
   ]);
+
+  // ------------------------------- panneaux d'adoption (plan 13 §3)
+  for (const def of COMPAGNONS_BIOMES) {
+    const pos = POSITIONS_ADOPTION[def.id];
+    enregistrer(`zone-${def.zone}`, [
+      {
+        id: `adoption-${def.id}`,
+        x: pos.x,
+        y: pos.y,
+        rayon: 90,
+        sprite: () =>
+          panneauEtat(
+            (state.save.compagnons[def.id] ?? 0) >= UNITES_MAX,
+            true // toujours « disponible » : le modal fait la police
+          ),
+        etiquette: () => `${def.nomPluriel} ${state.save.compagnons[def.id] ?? 0}/${UNITES_MAX}`,
+        texte: () =>
+          (state.save.compagnons[def.id] ?? 0) >= UNITES_MAX
+            ? `${def.nomPluriel} — ★ COPIE DE COMBAT DÉBLOQUÉE\n${def.combat.descRole}`
+            : `ADOPTER DES ${def.nomPluriel}\nIls récoltent ici, même quand tu es ailleurs.`,
+        action: () => ouvrirAdoption(def),
+      },
+    ]);
+  }
 
   // ---------------------------------------------- forêt : l'arbre géant
   enregistrer(`zone-${INDEX_FORET}`, [

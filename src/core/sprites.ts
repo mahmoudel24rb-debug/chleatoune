@@ -337,6 +337,65 @@ export const SPRITES_MONSTRES: Record<string, HTMLCanvasElement> = {
   golem: GOLEM,
 };
 
+// ------------------------------------------------------------------
+// BESTIAIRE GLB (plan 10 §6) : chargement PARESSEUX des rendus
+// public/assets/monstres/{prefixe}_{vue}_{pose}.png — appelé à l'entrée
+// du donjon, jamais au boot (12 boss × 10 PNG ne pèsent pas sur le
+// premier lancement). Convention STRICTE : m_{id}, b_{id}, c_{id},
+// pnj_mercier. Tant qu'une frame n'est pas chargée : secours pixel art.
+// ------------------------------------------------------------------
+
+export type VueMonstre = 'face' | 'profil';
+export type PoseMonstre = 'idle' | 'marche1' | 'marche2' | 'attaque1' | 'attaque2';
+
+type FramesGlb = Partial<Record<string, HTMLCanvasElement>>;
+const cacheGlb = new Map<string, FramesGlb>();
+
+export function chargerSpritesGlb(prefixe: string, facteur = 1): FramesGlb {
+  const existant = cacheGlb.get(prefixe);
+  if (existant) return existant;
+  const frames: FramesGlb = {};
+  cacheGlb.set(prefixe, frames);
+  for (const vue of ['face', 'profil'] as VueMonstre[]) {
+    for (const pose of ['idle', 'marche1', 'marche2', 'attaque1', 'attaque2'] as PoseMonstre[]) {
+      chargerPng(`assets/monstres/${prefixe}_${vue}_${pose}.png`, facteur, (c) => {
+        frames[`${vue}_${pose}`] = c;
+      });
+    }
+  }
+  return frames;
+}
+
+export function frameGlb(prefixe: string, vue: VueMonstre, pose: PoseMonstre): HTMLCanvasElement | undefined {
+  const frames = cacheGlb.get(prefixe);
+  return frames?.[`${vue}_${pose}`] ?? frames?.[`face_${pose}`] ?? frames?.['face_idle'];
+}
+
+/** Précharge tout ce dont un donjon a besoin (monstres + le boss). */
+export function prechargerDonjon(idsMonstres: string[], bossId: string): void {
+  for (const id of idsMonstres) chargerSpritesGlb(`m_${id}`);
+  chargerSpritesGlb(`b_${bossId}`);
+}
+
+/** Frames d'un compagnon de biome (GLB c_{id}, ×2 comme l'héroïne),
+ *  doughcat/yuumi gardent leurs sprites historiques. */
+export function framesCompagnon(espece: string): { idle: HTMLCanvasElement; marche: HTMLCanvasElement[] } {
+  if (espece === 'prairie') return SPRITES_DOUGHCAT;
+  if (espece === 'yuumi') return SPRITES_YUUMI;
+  const glb = chargerSpritesGlb(`c_${espece}`, 2);
+  const idle = glb['face_idle'] ?? CHAT_SECOURS;
+  return {
+    idle,
+    marche: [glb['profil_marche1'] ?? idle, glb['profil_marche2'] ?? idle],
+  };
+}
+
+/** Le PNJ Mercier de l'Antre (Elderwood Bard). */
+export function spriteMercier(): HTMLCanvasElement | null {
+  const glb = chargerSpritesGlb('pnj_mercier', 2);
+  return glb['face_idle'] ?? null;
+}
+
 export const SPRITE_PLUME = creerSprite(
   [
     '..........',

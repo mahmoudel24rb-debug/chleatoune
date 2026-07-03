@@ -85,16 +85,10 @@ AMELIORATIONS.push(
       `${Math.round(100 * (1 + CONFIG.birb.bonusVitesseParNiveau * n))} % → ${Math.round(
         100 * (1 + CONFIG.birb.bonusVitesseParNiveau * (n + 1))
       )} %`,
-  },
-  {
-    id: 'p_doughcat',
-    arbre: 'popcorn',
-    nom: 'DOUGHCAT',
-    desc: 'Un chat-brioche ramasse pour toi. Survit à la recouture.',
-    niveauMax: 4,
-    coutBase: 100,
-    croissance: 3,
-    permanent: true, // les compagnons survivent au rebirb (plan 06, étape 4)
-    affichage: (n) => `${n} → ${n + 1} CHAT${n + 1 > 1 ? 'S' : ''}`,
   }
 );
+
+// L'entrée DOUGHCAT de la boutique a été retirée (plan 13 §2) : l'achat
+// des compagnons est désormais diégétique, au panneau d'adoption de
+// chaque biome (systems/carte.ts). Les anciens niveaux `p_doughcat` sont
+// migrés vers save.compagnons.prairie dans systems/save.ts.

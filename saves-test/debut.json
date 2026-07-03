@@ -1,0 +1,11 @@
+{
+  "version": 3,
+  "soldes": { "popcorn": 300, "graine": 0, "brindille": 0, "minerai": 0 },
+  "rebirbs": 0,
+  "heros": { "niveau": 2, "xp": 0, "sp": 0, "competences": { "vitalite": 1, "recuperation": 0, "force": 2 } },
+  "swarm": { "porteMax": 1, "termines": {}, "sansFinRecord": 0, "escouade": [] },
+  "parchemins": {},
+  "sorts": { "ciseaux": 1 },
+  "evolutions": {},
+  "compagnons": {}
+}

@@ -91,16 +91,20 @@ export const PORTES: PorteDef[] = [
   }),
   porte(4, 'LA CRIQUE', 3, 'fizz', 'FIZZ, LE FARCEUR DES MARÉES', 1980, 1250),
   porte(5, 'LES RÉCIFS', 4, 'belveth', 'BEL’VETH, L’IMPÉRATRICE', 1980, 800, {
-    // raz-de-marée (bombix au plan 10 — spectres en attendant)
-    2: [{ type: 'spectre', nombre: 14 }],
+    // le raz-de-marée de bombix (plan 12 §3) — ça clignote de partout
+    2: [
+      { type: 'bombix', nombre: 12 },
+      { type: 'glouton', nombre: 4 },
+    ],
   }),
   porte(6, 'LA CONGÈRE', 5, 'nunubot', 'WILLUMP-BOT', 1460, 800),
   porte(7, 'LE CŒUR DES RONCES', 0, 'ornn', 'ORNN DES BOIS ANCIENS', 940, 800),
   porte(8, 'LA MOISSON NOIRE', 1, 'fiddlesticks', 'FIDDLESTICKS, LA TERREUR', 420, 800),
   porte(9, 'LE CANYON', 2, 'malphite', 'MALPHITE, LE COLOSSE', 420, 380, {
-    // le mur de golems (cracheurs derrière au plan 10)
+    // le mur de golems, les cracheurs planqués derrière (plan 12 §3)
     3: [
       { type: 'golem', nombre: 5 },
+      { type: 'cracheur', nombre: 3 },
       { type: 'glouton', nombre: 4 },
     ],
   }),

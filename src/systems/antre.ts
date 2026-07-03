@@ -7,11 +7,13 @@ import { PORTES, type PorteDef } from '../data/portes';
 import { jeu } from '../core/mode';
 import { state } from '../core/state';
 import { birb } from '../entities/birb';
-import { spritePorte, SPRITE_TAPIS } from '../core/structures';
+import { spritePorte, SPRITE_TAPIS, SPRITE_MARCHAND } from '../core/structures';
+import { spriteMercier } from '../core/sprites';
 import { enregistrer, type Interactif } from './interactions';
 import { ajouterToast } from '../ui/toasts';
-import { ouvrirConfirmationPorte } from '../ui/overlays';
+import { ouvrirConfirmationPorte, ouvrirMercier } from '../ui/overlays';
 import { entrerDonjon, essayerSortirDonjon } from './donjon';
+import { sauvegarder } from './save';
 
 const CLE_SCENE = 'chleatoune_scene'; // sessionStorage : recharger en plein
 // donjon ramène proprement dans l'Antre (critère du plan 09)
@@ -26,6 +28,12 @@ export function entrerAntre(): void {
   birb.x = CONFIG.monde.largeur / 2;
   birb.y = CONFIG.monde.hauteur - 180;
   sessionStorage.setItem(CLE_SCENE, 'antre');
+  // le sort offert (plan 11, pièges) : personne n'arrive porte 1 sans rien
+  if ((state.save.sorts.ciseaux ?? 0) < 1) {
+    state.save.sorts.ciseaux = 1;
+    ajouterToast('🧵 LE MERCIER T’OFFRE TES PREMIERS CISEAUX VOLANTS !');
+    sauvegarder();
+  }
 }
 
 export function sortirAntre(): void {
@@ -74,6 +82,18 @@ export function amenagerAntre(): void {
       ouvrirConfirmationPorte(p, () => entrerDonjon(p));
     },
   }));
+
+  // LE MERCIER (plan 11) : près de l'entrée, impossible à rater
+  interactifs.push({
+    id: 'mercier',
+    x: CONFIG.monde.largeur / 2 - 280,
+    y: CONFIG.monde.hauteur - 160,
+    rayon: 95,
+    sprite: () => spriteMercier() ?? SPRITE_MARCHAND,
+    etiquette: () => '🧵 LE MERCIER',
+    texte: () => 'LE MERCIER [M]\nParchemins de stats et sortilèges cousus.',
+    action: ouvrirMercier,
+  });
 
   interactifs.push({
     id: 'sortie-antre',

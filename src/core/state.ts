@@ -4,6 +4,7 @@
 import { CONFIG, MONNAIES, type MonnaieId } from '../data/config';
 import { capSpawn, delaiSpawn, valeurCollecte, vitesseBirb } from '../data/upgrades';
 import { COMBAT, type CompetenceId } from '../data/combat';
+import { EFFETS_PARCHEMINS } from '../data/parchemins';
 import { talentPossede } from '../data/talents';
 import type { TypeQuete } from '../data/desert';
 
@@ -150,6 +151,13 @@ export const state = {
     generateur: 0,
     multCoffres: 1,
     capBonus: 0,
+    // ---- v3 : parchemins du Mercier (plan 11) ----
+    /** hâte : cd effectif = base × 100/(100+hâte) — jamais de cd nul */
+    hate: 0,
+    /** × taille des zones d'effet (flaques de sorts, explosions) */
+    multZone: 1,
+    /** +N projectiles aux sorts multi (parchemin BOBINE DOUBLE) */
+    projectilesBonus: 0,
   },
 };
 
@@ -171,21 +179,40 @@ export function recalculerStats(): void {
       cap: capSpawn(niveau(`${m}_cap`)) + s.capBonus,
     };
   }
-  s.vitesseBirb = vitesseBirb(niveau('p_ailes')) * (a('t_vitesse') ? 1.15 : 1);
+  // parchemins du Mercier (plan 11 §5) — l'ordre des multiplicateurs
+  // suit le modèle de puissance du plan 12 §1, sommé ICI et nulle part
+  // ailleurs
+  const p = (id: string) => state.save.parchemins[id] ?? 0;
+
+  s.vitesseBirb =
+    vitesseBirb(niveau('p_ailes')) *
+    (a('t_vitesse') ? 1.15 : 1) *
+    (1 + EFFETS_PARCHEMINS.celerite * p('celerite'));
   // le bonus passif vient des plumes gagnées DEPUIS TOUJOURS : dépenser
   // ses plumes dans les talents ne le fait pas reculer
   s.multiplicateurPlumes = 1 + CONFIG.prestige.bonusParPlume * state.save.cumulPlumes;
 
   const c = state.save.heros.competences;
-  s.pvMax = COMBAT.pvBase + COMBAT.pvParPointVitalite * c.vitalite;
-  s.regen = COMBAT.regenBase + COMBAT.regenParPoint * c.recuperation + (a('t_regen') ? 1 : 0);
+  s.pvMax = COMBAT.pvBase + COMBAT.pvParPointVitalite * c.vitalite + EFFETS_PARCHEMINS.vie * p('vie');
+  s.regen =
+    COMBAT.regenBase +
+    COMBAT.regenParPoint * c.recuperation +
+    (a('t_regen') ? 1 : 0) +
+    EFFETS_PARCHEMINS.regen * p('regen');
+  // D = (10 + 2×Force) × (1 + 0,08×puissance) × (1,3 talent) — plan 12 §1
   s.degats = Math.round(
-    (COMBAT.degatsBase + COMBAT.degatsParPoint * c.force) * (a('t_degats') ? 1.3 : 1)
+    (COMBAT.degatsBase + COMBAT.degatsParPoint * c.force) *
+      (1 + EFFETS_PARCHEMINS.puissance * p('puissance')) *
+      (a('t_degats') ? 1.3 : 1)
   );
+  s.hate = EFFETS_PARCHEMINS.cadence * p('cadence');
+  s.multZone = 1 + EFFETS_PARCHEMINS.zone * p('zone');
+  s.projectilesBonus = p('projectiles');
 
   s.multGlobal = (1 + 0.2 * state.save.sacrifices) * (a('t_etoile') ? 2 : 1);
   s.multXp = a('t_xp') ? 1.3 : 1;
-  s.rayonAimant = CONFIG.auto.rayonAimant * (a('t_aimant') ? 1.6 : 1);
+  s.rayonAimant =
+    CONFIG.auto.rayonAimant * (a('t_aimant') ? 1.6 : 1) * (1 + EFFETS_PARCHEMINS.aimant * p('aimant'));
   s.vitesseChats = a('t_chats') ? 1.4 : 1;
   s.generateur = a('t_generateur') ? 1 : 0;
   s.multCoffres = (a('t_coffres') ? 1.5 : 1) * (1 + 0.1 * state.save.sacrifices);

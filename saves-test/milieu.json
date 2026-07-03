@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "soldes": { "popcorn": 20000, "graine": 3000, "brindille": 2000, "minerai": 0 },
+  "soldeDore": 400,
+  "plumes": 6,
+  "cumulPlumes": 14,
+  "rebirbs": 2,
+  "heros": { "niveau": 14, "xp": 0, "sp": 2, "competences": { "vitalite": 10, "recuperation": 4, "force": 12 } },
+  "talents": { "t_degats": true },
+  "swarm": { "porteMax": 6, "termines": { "1": 2, "2": 1, "3": 1, "4": 1, "5": 1 }, "sansFinRecord": 0, "escouade": ["prairie"] },
+  "parchemins": { "puissance": 8, "vie": 6, "regen": 3, "celerite": 2, "cadence": 2, "aimant": 1 },
+  "sorts": { "ciseaux": 3, "aiguilles": 3, "bobines": 3 },
+  "evolutions": {},
+  "compagnons": { "prairie": 4, "scene": 2 }
+}

@@ -1,0 +1,214 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Rendu GLB vers sprites</title>
+  <style>body { background: #333; }</style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, preserveDrawingBuffer: true });
+    renderer.setPixelRatio(1);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    document.body.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x999999, 1.6));
+    const dir = new THREE.DirectionalLight(0xffffff, 1.2);
+    dir.position.set(1, 2, 3);
+    scene.add(dir);
+
+    // Le modele a charger se passe en parametre d'URL : render.html?glb=doughcat.glb
+    const nomGlb = new URLSearchParams(location.search).get('glb') || 'chibi_crystal_rose_gwen.glb';
+    const gltf = await new GLTFLoader().loadAsync(nomGlb);
+    // Textures LoL/TFT = eclairage deja "cuit" : on les affiche sans lumiere.
+    gltf.scene.traverse((o) => {
+      if (o.isMesh || o.isSkinnedMesh) {
+        // les clips avec déplacement de racine sortent de la sphère
+        // englobante d'origine → sans ça, le mesh disparaît sous
+        // certains angles (frustum culling)
+        o.frustumCulled = false;
+        const m = new THREE.MeshBasicMaterial({
+          map: o.material.map ?? null,
+          transparent: o.material.transparent,
+          alphaTest: 0.35,
+          side: THREE.DoubleSide,
+        });
+        o.material = m;
+      }
+    });
+    scene.add(gltf.scene);
+
+    const mixer = new THREE.AnimationMixer(gltf.scene);
+    window.clips = gltf.animations.map((a) => ({ name: a.name, duration: a.duration }));
+    const meshNames = [];
+    gltf.scene.traverse((o) => { if (o.isMesh || o.isSkinnedMesh) meshNames.push(o.name); });
+    window.meshes = meshNames;
+
+    window.cacher = (fragments) => {
+      gltf.scene.traverse((o) => {
+        if ((o.isMesh || o.isSkinnedMesh) && fragments.some((f) => o.name.toLowerCase().includes(f.toLowerCase()))) {
+          o.visible = false;
+        }
+      });
+    };
+    window.toutMontrer = () => gltf.scene.traverse((o) => { o.visible = true; });
+
+    function poser(clipNom, temps) {
+      mixer.stopAllAction();
+      if (!clipNom) { gltf.scene.traverse(o => { if (o.isSkinnedMesh) o.skeleton.pose(); }); return; }
+      const voulu = clipNom.toLowerCase();
+      const clip =
+        gltf.animations.find((a) => a.name.toLowerCase() === voulu) ??
+        gltf.animations.find((a) => a.name.toLowerCase().includes(voulu));
+      if (!clip) { console.warn('clip introuvable :', clipNom); return; }
+      const action = mixer.clipAction(clip);
+      action.play();
+      mixer.setTime(temps % clip.duration);
+    }
+
+    // Boite englobante REELLE de la pose courante : Box3.setFromObject
+    // ignore la deformation squelettique, on transforme donc chaque sommet
+    // par les os (boneTransform) pour couvrir la vraie silhouette animee.
+    // Certains modèles « garent » des accessoires cachés très loin du corps
+    // (parfois même en pose de repos) : on cadre donc sur le NUAGE DENSE
+    // de sommets — le corps écrase tout en nombre de points, la médiane
+    // tombe donc dedans, et on rejette ce qui en est trop éloigné.
+    const _v = new THREE.Vector3();
+    function pointsSkinnés(pas) {
+      const points = [];
+      gltf.scene.traverse((o) => {
+        if (o.isSkinnedMesh && o.visible) {
+          o.skeleton.update();
+          const pos = o.geometry.attributes.position;
+          for (let i = 0; i < pos.count; i += pas) {
+            _v.fromBufferAttribute(pos, i);
+            o.applyBoneTransform(i, _v);
+            _v.applyMatrix4(o.matrixWorld);
+            points.push(_v.clone());
+          }
+        }
+      });
+      return points;
+    }
+
+    function mediane(valeurs) {
+      const triees = [...valeurs].sort((a, b) => a - b);
+      return triees[triees.length >> 1];
+    }
+
+    window.statsNuage = (clip, temps) => {
+      poser(clip, temps);
+      gltf.scene.updateMatrixWorld(true);
+      const pts = pointsSkinnés(3);
+      const q = (vals, f) => { const t=[...vals].sort((a,b)=>a-b); return t[Math.floor(f*(t.length-1))]; };
+      const ys = pts.map(p=>p.y), xs = pts.map(p=>p.x);
+      const deciles = {};
+      for (let i=0;i<=10;i++) deciles[i*10] = Math.round(q(ys, i/10));
+      return { n: pts.length, yDeciles: deciles, x0: Math.round(q(xs,0)), x100: Math.round(q(xs,1)) };
+    };
+
+    function boiteScenePosee() {
+      gltf.scene.updateMatrixWorld(true);
+      // 1) centre robuste : médiane par axe d'un échantillon de sommets
+      const echantillon = pointsSkinnés(5);
+      const centre = new THREE.Vector3(
+        mediane(echantillon.map((p) => p.x)),
+        mediane(echantillon.map((p) => p.y)),
+        mediane(echantillon.map((p) => p.z))
+      );
+      // 2) rayon robuste : 8× la distance médiane au centre (le corps et
+      //    son arme rentrent, les accessoires garés au loin non)
+      const limite = Math.max(1, mediane(echantillon.map((p) => p.distanceTo(centre))) * (window.facteurLimite || 8));
+      // 3) boîte sur TOUS les sommets proches du nuage dense
+      const box = new THREE.Box3();
+      for (const p of pointsSkinnés(1)) {
+        if (p.distanceTo(centre) < limite) box.expandByPoint(p);
+      }
+      gltf.scene.traverse((o) => {
+        if (o.isMesh && !o.isSkinnedMesh && o.visible) {
+          const b = new THREE.Box3().setFromObject(o);
+          if (b.getCenter(new THREE.Vector3()).distanceTo(centre) < limite) box.union(b);
+        }
+      });
+      return box;
+    }
+
+    // Calibre le cadrage sur l'UNION des boites englobantes de plusieurs
+    // poses, PROJETEE dans chacun des angles de vue : aucune frame n'est
+    // coupee, quelle que soit la vue, et l'echelle est identique partout.
+    // Retourne le ratio largeur/hauteur du cadre.
+    window.calibrerUnion = (frames, yaws = [0], pitch = 12) => {
+      const union = new THREE.Box3();
+      for (const f of frames) {
+        poser(f.clip, f.temps);
+        union.union(boiteScenePosee());
+      }
+      const centre = union.getCenter(new THREE.Vector3());
+      const coins = [];
+      for (const x of [union.min.x, union.max.x])
+        for (const y of [union.min.y, union.max.y])
+          for (const z of [union.min.z, union.max.z]) coins.push(new THREE.Vector3(x, y, z));
+
+      const dist = union.getSize(new THREE.Vector3()).length() * 3 + 10;
+      const pr = (pitch * Math.PI) / 180;
+      let demiL = 0;
+      let demiH = 0;
+      for (const yaw of yaws) {
+        const yr = (yaw * Math.PI) / 180;
+        const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, dist * 10);
+        cam.position.set(
+          centre.x + Math.sin(yr) * Math.cos(pr) * dist,
+          centre.y + Math.sin(pr) * dist,
+          centre.z + Math.cos(yr) * Math.cos(pr) * dist
+        );
+        cam.lookAt(centre);
+        cam.updateMatrixWorld(true);
+        for (const coin of coins) {
+          const v = coin.clone().applyMatrix4(cam.matrixWorldInverse);
+          demiL = Math.max(demiL, Math.abs(v.x));
+          demiH = Math.max(demiH, Math.abs(v.y));
+        }
+      }
+      window._cadrage = { centre, demiL, demiH, dist };
+      return demiL / demiH;
+    };
+
+    window.rendre = ({ largeur, hauteur, yaw = 0, pitch = 12, zoom = 1, clip = null, temps = 0 }) => {
+      if (!window._cadrage) window.calibrerUnion([{ clip, temps }], [yaw], pitch);
+      poser(clip, temps);
+      gltf.scene.updateMatrixWorld(true);
+      const { centre, demiH, dist } = window._cadrage;
+
+      const marge = 1.06; // place pour le contour 1px du post-traitement
+      const h = (demiH * 2 * marge) / zoom;
+      const w = (h * largeur) / hauteur; // >= demiL*2 si le canvas suit le ratio calibre
+      const cam = new THREE.OrthographicCamera(-w / 2, w / 2, h / 2, -h / 2, 0.01, dist * 10);
+      const yr = (yaw * Math.PI) / 180;
+      const pr = (pitch * Math.PI) / 180;
+      cam.position.set(
+        centre.x + Math.sin(yr) * Math.cos(pr) * dist,
+        centre.y + Math.sin(pr) * dist,
+        centre.z + Math.cos(yr) * Math.cos(pr) * dist
+      );
+      cam.lookAt(centre);
+      renderer.setSize(largeur, hauteur);
+      renderer.render(scene, cam);
+      return renderer.domElement.toDataURL('image/png');
+    };
+
+    window.pret = true;
+  </script>
+</body>
+</html>

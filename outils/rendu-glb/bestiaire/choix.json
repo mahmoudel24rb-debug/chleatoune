@@ -1,0 +1,242 @@
+{
+ "b_aurelionsol.glb": {
+  "idle": "Idle1_Base",
+  "course": "Run1A",
+  "attaque": "AurelionSol_Attack2.anm",
+  "durees": {
+   "Idle1_Base": 6,
+   "Run1A": 0.6666668057441711,
+   "AurelionSol_Attack2.anm": 3.9666666984558105
+  }
+ },
+ "b_belveth.glb": {
+  "idle": "Idle1_Combat.anm",
+  "course": "Run_Combat.anm",
+  "attaque": "AttacK_Fast1a",
+  "durees": {
+   "Idle1_Combat.anm": 4,
+   "Run_Combat.anm": 2,
+   "AttacK_Fast1a": 0.30000001192092896
+  }
+ },
+ "b_fiddlesticks.glb": {
+  "idle": "IdleA",
+  "course": "Run_Base",
+  "attaque": "Spell1",
+  "durees": {
+   "IdleA": 3.999997615814209,
+   "Run_Base": 0.8666669726371765,
+   "Spell1": 0.46666666865348816
+  }
+ },
+ "b_fizz.glb": {
+  "idle": "Idle1",
+  "course": "Run",
+  "attaque": "Attack1",
+  "durees": {
+   "Idle1": 4,
+   "Run": 4,
+   "Attack1": 1.0000003576278687
+  }
+ },
+ "b_leona.glb": {
+  "idle": "Idle1",
+  "course": "Run",
+  "attaque": "Attack1",
+  "durees": {
+   "Idle1": 6.699995040893555,
+   "Run": 1.0000003576278687,
+   "Attack1": 0.9677414894104004
+  }
+ },
+ "b_malphite.glb": {
+  "idle": "Idle1",
+  "course": "Run",
+  "attaque": "Attack1",
+  "durees": {
+   "Idle1": 2,
+   "Run": 0.8333336114883423,
+   "Attack1": 0.8999999761581421
+  }
+ },
+ "b_maokai.glb": {
+  "idle": "Idle1_Base",
+  "course": "Run",
+  "attaque": "Attack1",
+  "durees": {
+   "Idle1_Base": 4,
+   "Run": 4,
+   "Attack1": 1.2000001668930054
+  }
+ },
+ "b_morgana.glb": {
+  "idle": "Idle2",
+  "course": "Attack1_To_Run_0",
+  "attaque": "Attack1",
+  "durees": {
+   "Idle2": 5.599996089935303,
+   "Attack1_To_Run_0": 1.399999976158142,
+   "Attack1": 2.3333325386047363
+  }
+ },
+ "b_nautilus.glb": {
+  "idle": "Idle1",
+  "course": "Run",
+  "attaque": "Attack1",
+  "durees": {
+   "Idle1": 15.199999809265137,
+   "Run": 0.9333333373069763,
+   "Attack1": 2.0333333015441895
+  }
+ },
+ "b_nunubot.glb": {
+  "idle": "Idle_Base",
+  "course": "Run_Base",
+  "attaque": "Attack1",
+  "durees": {
+   "Idle_Base": 2.6333322525024414,
+   "Run_Base": 1.166666865348816,
+   "Attack1": 3.299999952316284
+  }
+ },
+ "b_ornn.glb": {
+  "idle": "Idle1_Base",
+  "course": "Run_Base",
+  "attaque": "Attack1",
+  "durees": {
+   "Idle1_Base": 3.9666666984558105,
+   "Run_Base": 1.033333659172058,
+   "Attack1": 2.1333327293395996
+  }
+ },
+ "b_skarner.glb": {
+  "idle": "IdleBase",
+  "course": "Run_rock.Skarner_Rework.anm",
+  "attaque": "Attack1",
+  "durees": {
+   "IdleBase": 3.3333332538604736,
+   "Run_rock.Skarner_Rework.anm": 1.6666666269302368,
+   "Attack1": 2.666665554046631
+  }
+ },
+ "b_velkoz.glb": {
+  "idle": "Velkoz_Idle1v2.anm",
+  "course": "Run",
+  "attaque": "Spell1",
+  "durees": {
+   "Velkoz_Idle1v2.anm": 8,
+   "Run": 8,
+   "Spell1": 1.3333333730697632
+  }
+ },
+ "c_desert.glb": {
+  "idle": "Idle_Base",
+  "course": "Run_Base",
+  "attaque": "Cast_Animation",
+  "durees": {
+   "Idle_Base": 2.6666667461395264,
+   "Run_Base": 2,
+   "Cast_Animation": 0.9000003337860107
+  }
+ },
+ "c_foret.glb": {
+  "idle": "IdleA",
+  "course": "Run_Base",
+  "attaque": "Cast_Animation",
+  "durees": {
+   "IdleA": 2,
+   "Run_Base": 1.0666667222976685,
+   "Cast_Animation": 0.5
+  }
+ },
+ "c_mine.glb": {
+  "idle": "Idle_Base",
+  "course": "Run.anm",
+  "attaque": "Spell1",
+  "durees": {
+   "Idle_Base": 2,
+   "Run.anm": 0.800000011920929,
+   "Spell1": 0.699999988079071
+  }
+ },
+ "c_scene.glb": {
+  "idle": "Idle_Base",
+  "course": "Run_Base",
+  "attaque": "Cast_Cycle",
+  "durees": {
+   "Idle_Base": 2,
+   "Run_Base": 0.6000000238418579,
+   "Cast_Cycle": 1
+  }
+ },
+ "m_bombix.glb": {
+  "idle": "Idle1",
+  "course": "Run1",
+  "attaque": "Attack1",
+  "durees": {
+   "Idle1": 3.199998378753662,
+   "Run1": 0.8000002503395081,
+   "Attack1": 1.2666666507720947
+  }
+ },
+ "m_cracheur.glb": {
+  "idle": "Idle1",
+  "course": "Run",
+  "attaque": "Attack1_BASE",
+  "durees": {
+   "Idle1": 3.999997615814209,
+   "Run": 3.999997615814209,
+   "Attack1_BASE": 1.600000023841858
+  }
+ },
+ "m_epingleur.glb": {
+  "idle": "Idle1",
+  "course": "Run",
+  "attaque": "Attack1",
+  "durees": {
+   "Idle1": 1.600000023841858,
+   "Run": 1.600000023841858,
+   "Attack1": 1.6666666269302368
+  }
+ },
+ "m_glouton.glb": {
+  "idle": "Idle2",
+  "course": "Run",
+  "attaque": "Attack1",
+  "durees": {
+   "Idle2": 1,
+   "Run": 0.800000011920929,
+   "Attack1": 0.933333694934845
+  }
+ },
+ "m_golem.glb": {
+  "idle": "Idle1",
+  "course": "Run",
+  "attaque": "Attack1",
+  "durees": {
+   "Idle1": 1.600000023841858,
+   "Run": 1.5999997854232788,
+   "Attack1": 1.600000023841858
+  }
+ },
+ "m_spectre.glb": {
+  "idle": "Khazix_idle1.anm",
+  "course": "Khazix_runHeadTwitch.anm",
+  "attaque": "Attack1",
+  "durees": {
+   "Khazix_idle1.anm": 8,
+   "Khazix_runHeadTwitch.anm": 2,
+   "Attack1": 1.5333333015441895
+  }
+ },
+ "pnj_mercier.glb": {
+  "idle": "Idle1_Base",
+  "course": "Run_Base",
+  "attaque": "Spell1",
+  "durees": {
+   "Idle1_Base": 13.33339786529541,
+   "Run_Base": 1.4333332777023315,
+   "Spell1": 1.2666667699813843
+  }
+ }
+}

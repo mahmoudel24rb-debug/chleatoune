@@ -49,14 +49,52 @@ export const SWARM = {
 
   // ---- joueuse
   coefMelee: 1.5, // le contrat risque/récompense de la mêlée
+  // La clémence des bullet heavens : après CHAQUE coup reçu, une courte
+  // fenêtre d'invulnérabilité (clignotement). Être encerclée fait mal,
+  // mais ne one-burst jamais — « jamais frustrant » (plan 12 §0).
+  graceContactSec: 0.4,
 
-  // ---- télégraphes (plan 10, utilisés à partir du bestiaire v2)
+  // ---- télégraphes & skillshots (plan 10 §3)
   telegrapheLigneSec: 0.7,
   telegrapheZoneSec: 0.9,
+  projectiles: {
+    largeurLigne: 18, // largeur du rectangle télégraphié au sol
+    vitesse: 300, // px/s — esquivable à vitesse de base SANS parchemin
+    taille: 8, // côté du carré dessiné
+    rayonZone: 35, // flaque Ø 70 du cracheur
+  },
+  flaque: {
+    dureeSec: 2, // la flaque reste au sol
+    tickSec: 0.5, // dégâts 1×/tick à quiconque reste dedans
+  },
+  kamikaze: {
+    distance: 26, // distance de déclenchement du clignotement
+    clignoteSec: 0.4, // blanc/rouge, puis boum
+    rayon: 25, // explosion Ø 50
+  },
+
+  // ---- tireurs (plan 10 §2) : machine à états
+  tireur: {
+    seuilApproche: 0.85, // approche tant que dist > portée × ça
+    seuilRecul: 0.45, // recule si dist < portée × ça
+  },
+
+  // ---- boss (plan 10 §4) : les patterns partagés
+  boss: {
+    cadencePatternSec: 4.5, // délai entre deux patterns
+    vitesse: 48, // px/s de poursuite (lent : la menace, ce sont les patterns)
+    charge: { viseSec: 0.8, vitesse: 380, distance: 300, etourdiSec: 1, multDegats: 2 },
+    volee: { nb: 5, ecartDeg: 18 }, // éventail : esquive entre les rayons
+    pluie: { nb: 6, rayonDispersion: 150 }, // zones autour de la joueuse
+    invocation: { min: 4, max: 6 }, // gloutons/spectres (respecte le cap)
+    anneau: { nb: 16, breche: 3 }, // projectiles en anneau, une brèche
+    enrage: { seuil: 0.25, vitesse: 1.3, cadence: 1.5 }, // sous 25 % PV
+  },
 
   // ---- méta-progression (plan 11)
   croissanceCoutParchemin: 1.35,
   croissanceCoutSort: 1.45,
+  coutEvolutionDores: 600, // le puits à smiski dorés du late-game
 
   // ---- porte sans fin (anti-plafond)
   sansFin: {
@@ -70,9 +108,24 @@ export const SWARM = {
     tickSec: 5, // récolte statistique des biomes inactifs
     rendementTick: 0.8, // collectible-équivalent par unité et par tick
     rendementDoreTick: 0.4,
-    vitesse: 170, // défaut ; surcharges par espèce possibles ici
+    vitesse: { defaut: 170, foret: 130, mine: 140 } as Record<string, number>,
+    escouadeMax: 3, // copies de combat simultanées (plan 13 §5)
+    porteeTaunt: 90, // le tank « provoque » les monstres à moins de ça
+    porteeSoin: 120, // aura du soigneur
+    soinPctParSec: 1.5, // % des PV max soignés par seconde
+    bonusChanceux: 0.1, // +10 % butin quand le chanceux achève
   },
 };
+
+/** Coût du niveau suivant d'un parchemin (plan 11 §2). */
+export function coutParchemin(coutBase: number, niveauActuel: number): number {
+  return Math.ceil(coutBase * Math.pow(SWARM.croissanceCoutParchemin, niveauActuel));
+}
+
+/** Coût de la montée du sort vers le niveau `versNiveau` (2..6). */
+export function coutNiveauSort(coutDeblocage: number, versNiveau: number): number {
+  return Math.ceil((coutDeblocage / 2) * Math.pow(SWARM.croissanceCoutSort, versNiveau - 2));
+}
 
 /** Multiplicateur de PV/XP/butin de la porte n (H(n) du plan 12). */
 export function multPV(niveau: number): number {

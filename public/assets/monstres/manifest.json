@@ -1,0 +1,151 @@
+{
+ "ok": [
+  "m_glouton",
+  "m_epingleur",
+  "m_cracheur",
+  "m_golem",
+  "m_spectre",
+  "b_maokai",
+  "b_morgana",
+  "b_skarner",
+  "b_fizz",
+  "b_belveth",
+  "b_nunubot",
+  "b_ornn",
+  "b_fiddlesticks",
+  "b_malphite",
+  "b_leona",
+  "b_nautilus",
+  "b_velkoz",
+  "b_aurelionsol",
+  "pnj_mercier",
+  "c_scene",
+  "c_foret",
+  "c_mine",
+  "c_desert",
+  "m_bombix"
+ ],
+ "echecs": [],
+ "clips": {
+  "m_glouton": {
+   "idle": "Idle1",
+   "course": "Run",
+   "attaque": "Attack1"
+  },
+  "m_epingleur": {
+   "idle": "Idle1",
+   "course": "Run",
+   "attaque": "Attack1"
+  },
+  "m_cracheur": {
+   "idle": "Idle1",
+   "course": "Run",
+   "attaque": "Attack1_BASE"
+  },
+  "m_golem": {
+   "idle": "Idle1",
+   "course": "Run",
+   "attaque": "Attack1"
+  },
+  "m_spectre": {
+   "idle": "Khazix_idle1.anm",
+   "course": "Khazix_run.anm",
+   "attaque": "Attack1"
+  },
+  "b_maokai": {
+   "idle": "Idle1_Base",
+   "course": "Run",
+   "attaque": "Attack1"
+  },
+  "b_morgana": {
+   "idle": "Idle1",
+   "course": "morgana_run.anm",
+   "attaque": "Attack1"
+  },
+  "b_skarner": {
+   "idle": "IdleBase",
+   "course": "RunBase",
+   "attaque": "Attack1"
+  },
+  "b_fizz": {
+   "idle": "Idle1",
+   "course": "Run",
+   "attaque": "Attack1"
+  },
+  "b_belveth": {
+   "idle": "Idle1_Base",
+   "course": "Run_Combat.anm",
+   "attaque": "AttacK_Fast1a"
+  },
+  "b_nunubot": {
+   "idle": "Idle_Base",
+   "course": "Run_Base",
+   "attaque": "Attack1"
+  },
+  "b_ornn": {
+   "idle": "Idle1_Base",
+   "course": "Run_Base",
+   "attaque": "Attack1"
+  },
+  "b_fiddlesticks": {
+   "idle": "IdleA",
+   "course": "Run_Base",
+   "attaque": "Spell1"
+  },
+  "b_malphite": {
+   "idle": "Idle1",
+   "course": "Run",
+   "attaque": "Attack1"
+  },
+  "b_leona": {
+   "idle": "Idle1",
+   "course": "Run",
+   "attaque": "Attack1"
+  },
+  "b_nautilus": {
+   "idle": "Idle1",
+   "course": "Run",
+   "attaque": "Attack1"
+  },
+  "b_velkoz": {
+   "idle": "Velkoz_Idle1v2.anm",
+   "course": "Run",
+   "attaque": "Spell1"
+  },
+  "b_aurelionsol": {
+   "idle": "Idle1_Base",
+   "course": "Run1A",
+   "attaque": "AurelionSol_Attack1.anm"
+  },
+  "pnj_mercier": {
+   "idle": "Idle1_Base",
+   "course": "Run_Base",
+   "attaque": "Spell1"
+  },
+  "c_scene": {
+   "idle": "Idle_Base",
+   "course": "Run_Base",
+   "attaque": "Cast_Cycle"
+  },
+  "c_foret": {
+   "idle": "IdleA",
+   "course": "Run_Base",
+   "attaque": "Cast_Animation"
+  },
+  "c_mine": {
+   "idle": "Idle_Base",
+   "course": "Run.anm",
+   "attaque": "Spell1"
+  },
+  "c_desert": {
+   "idle": "Idle_Base",
+   "course": "Run_Base",
+   "attaque": "Cast_Animation"
+  },
+  "m_bombix": {
+   "idle": "Idle1",
+   "course": "Run1",
+   "attaque": "Attack1"
+  }
+ }
+}

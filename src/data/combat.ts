@@ -21,31 +21,7 @@ export function xpPourNiveau(niveau: number): number {
   return Math.ceil(25 * Math.pow(niveau, 1.6));
 }
 
-export interface TypeMonstre {
-  id: string;
-  nom: string;
-  /** coût en budget de menace (plan 12 §3) */
-  cout: number;
-  pv: number; // stats de BASE, avant multiplicateurs de porte
-  degats: number;
-  vitesse: number;
-  xp: number;
-  /** Smiski dorés lâchés à la mort (÷3, avant multiplicateurs). */
-  butin: number;
-  rayon: number;
-}
-
-// Bestiaire v1 (plan 09) — stats de base alignées sur la table du
-// plan 10 ; les rôles tireur/kamikaze arrivent au plan 10.
-export const MONSTRES: TypeMonstre[] = [
-  { id: 'glouton', nom: 'GLOUTON', cout: 1, pv: 20, degats: 5, vitesse: 55, xp: 6, butin: 2, rayon: 16 },
-  { id: 'spectre', nom: 'SPECTRE', cout: 1.5, pv: 14, degats: 6, vitesse: 85, xp: 8, butin: 3, rayon: 14 },
-  { id: 'golem', nom: 'GOLEM', cout: 3, pv: 65, degats: 10, vitesse: 30, xp: 14, butin: 6, rayon: 18 },
-];
-
-export function typeMonstre(id: string): TypeMonstre {
-  return MONSTRES.find((m) => m.id === id) ?? MONSTRES[0];
-}
+// Le bestiaire vit dans data/monstres.ts depuis le plan 10.
 
 export const COMPETENCES = [
   { id: 'vitalite', nom: 'VITALITÉ', desc: `+${COMBAT.pvParPointVitalite} PV par point` },

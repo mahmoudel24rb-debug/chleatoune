@@ -19,14 +19,19 @@ import {
   SPRITES_HEROINE,
   SPRITES_MONNAIES,
   SPRITES_MONSTRES,
-  SPRITES_YUUMI,
+  frameGlb,
+  framesCompagnon,
   SPRITE_SMISKI_DORE,
   TAILLE_OBJET,
+  type PoseMonstre,
 } from './core/sprites';
 import { SPRITES_COFFRES } from './core/structures';
 import { birb, centreBirb, majBirb } from './entities/birb';
 import type { Compagnon } from './systems/compagnons';
-import { getChats, getYuumi, majCompagnons } from './systems/compagnons';
+import { getEscouade, getRamasseurs, getYuumi, majCompagnons } from './systems/compagnons';
+import { PROJECTILES, nbProjectilesActifs } from './entities/projectile';
+import { dessinerTelegraphes, getTelegraphes } from './systems/telegraphes';
+import { dessinerSorts } from './systems/sorts';
 import { entitesZoneActive, majSpawner } from './systems/spawner';
 import { crediter, encaisserCollectible } from './systems/economy';
 import {
@@ -36,6 +41,7 @@ import {
   getMonstres,
   getPorte,
   getVague,
+  graceHeroine,
   majDonjon,
   _debugDegats,
 } from './systems/donjon';
@@ -67,6 +73,7 @@ import { basculerAuto, initHud, majHud } from './ui/hud';
 import { construirePanneau, majPanneau } from './ui/panel';
 import {
   basculerBoutiquePeche,
+  basculerMercier,
   basculerMikudex,
   basculerParametres,
   fermerModal,
@@ -77,6 +84,7 @@ import {
 import { ajouterToast } from './ui/toasts';
 import { initCreation } from './ui/creation';
 import { migrerVersProfils } from './systems/profils';
+import { faireRebirb } from './systems/rebirb';
 import { cloudDisponible, initBeaconCloud, initCloud, majCloud, pousserCloud } from './systems/cloud';
 
 // ---------------------------------------------------------------- setup
@@ -132,6 +140,10 @@ surTouche('Space', () => {
 surTouche('KeyB', () => {
   if (jeu.mode === 'peche') basculerBoutiquePeche();
 });
+surTouche('KeyM', () => {
+  // le Mercier ne reçoit que dans son Antre (plan 11 §6)
+  if (jeu.mode === 'antre') basculerMercier();
+});
 surTouche('F1', () => debugEl.classList.toggle('cache'));
 
 // ---------------------------------------------------------------- update
@@ -139,6 +151,7 @@ let accPanneau = 0;
 let accSave = 0;
 let accGenerateur = 0;
 let fps = 60;
+let msFrame = 16;
 
 function update(dt: number): void {
   state.save.tempsJeu += dt;
@@ -221,10 +234,12 @@ function update(dt: number): void {
   }
 
   if (dt > 0) fps = fps * 0.95 + (1 / dt) * 0.05;
+  msFrame = msFrame * 0.9 + dt * 1000 * 0.1;
   if (!debugEl.classList.contains('cache')) {
-    debugEl.textContent = `FPS ${Math.round(fps)} | MODE ${jeu.mode} | CAM ${Math.round(camera.x)},${Math.round(
-      camera.y
-    )} | ENTITÉS ${entitesZoneActive().length + getMonstres().length}`;
+    // overlay F1 du plan 10 §7 : entités / projectiles / ms de frame
+    debugEl.textContent = `FPS ${Math.round(fps)} | ${msFrame.toFixed(1)} MS | MODE ${jeu.mode} | ENTITÉS ${
+      entitesZoneActive().length + getMonstres().length + getEscouade().length
+    } | PROJ ${nbProjectilesActifs()} | TÉLÉG ${getTelegraphes().length}`;
   }
 }
 
@@ -296,6 +311,9 @@ function dessinerMonde(): void {
 
   // Coffres et monstres du donjon
   if (enDonjon()) {
+    // télégraphes et flaques : AU SOL, sous tout le monde (plan 10 §3)
+    dessinerTelegraphes(ctx, camX, camY);
+
     for (const coffre of getCoffres()) {
       const sprite = SPRITES_COFFRES[coffre.rarete];
       const x = Math.round(coffre.x - camX);
@@ -304,40 +322,91 @@ function dessinerMonde(): void {
       ctx.drawImage(sprite, x - sprite.width / 2, y - sprite.height / 2 + flottement);
     }
     for (const m of getMonstres()) {
-      const sprite = SPRITES_MONSTRES[m.type.id];
-      const taille = sprite.width * m.echelle;
+      // sprite GLB (m_{id} / b_{bossId}), secours pixel art en attendant
+      const prefixe = m.boss ? `b_${m.bossId ?? 'maokai'}` : `m_${m.type.id}`;
+      const enMarche = m.viseT <= 0 && (m.etourdiT ?? 0) <= 0 && (m.boss || true);
+      const pose: PoseMonstre =
+        m.attaqueT > 0 || m.viseT > 0
+          ? (Math.floor(performance.now() / 160) % 2 === 0 ? 'attaque1' : 'attaque2')
+          : enMarche
+            ? (Math.floor(performance.now() / 180 + m.x) % 2 === 0 ? 'marche1' : 'marche2')
+            : 'idle';
+      const vue = Math.abs(m.dirX) >= Math.abs(m.dirY) ? 'profil' : 'face';
+      const glb = frameGlb(prefixe, vue, pose);
+      const sprite = glb ?? SPRITES_MONSTRES[m.type.id] ?? SPRITES_MONSTRES.glouton;
+      const zoom = glb ? m.echelle : m.boss ? 2.5 : m.echelle;
+      const w = sprite.width * zoom;
+      const h = sprite.height * zoom;
       const mx = Math.round(m.x - camX);
       const my = Math.round(m.y - camY);
       // culling simple : hors caméra = pas de dessin (plan 10 §7)
-      if (mx < -80 || mx > ecran.largeur + 80 || my < -80 || my > ecran.hauteur + 80) continue;
+      if (mx < -140 || mx > ecran.largeur + 140 || my < -160 || my > ecran.hauteur + 160) continue;
+      m.attaqueT = Math.max(0, m.attaqueT - 0.016);
       // halo pulsant des élites (plan 10 §1)
       if (m.elite) {
         const phase = (Math.sin(performance.now() / 250) + 1) / 2;
         ctx.fillStyle = `rgba(255, 217, 74, ${0.18 + phase * 0.2})`;
         ctx.beginPath();
-        ctx.ellipse(mx, my + taille / 2 - 2, taille / 2 + 8, 10 + phase * 3, 0, 0, Math.PI * 2);
+        ctx.ellipse(mx, my + 12, w / 2 + 8, 10 + phase * 3, 0, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.fillStyle = 'rgba(0,0,0,0.25)';
       ctx.beginPath();
-      ctx.ellipse(mx, my + taille / 2 - 2, taille / 3, 4, 0, 0, Math.PI * 2);
+      ctx.ellipse(mx, my + 12, w / 3, 4, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.drawImage(sprite, mx - taille / 2, my - taille / 2, taille, taille);
+      // kamikaze qui clignote : blanc/rouge (plan 10 §2)
+      const clignote = m.clignoteT > 0 && Math.floor(performance.now() / 70) % 2 === 0;
+      ctx.save();
+      ctx.translate(mx, my + 14);
+      if (glb && m.dirX < 0 && vue === 'profil') ctx.scale(-1, 1);
+      if (clignote) ctx.filter = 'brightness(2.4) saturate(0.4)';
+      // étourdi (fin de charge) : le boss vacille — la fenêtre de punition
+      if ((m.etourdiT ?? 0) > 0) ctx.rotate(Math.sin(performance.now() / 90) * 0.08);
+      ctx.drawImage(sprite, Math.round(-w / 2), Math.round(-h), w, h);
+      ctx.restore();
       const largeurBarre = m.boss ? 56 : 30;
-      const yBarre = my - taille / 2 - 8;
+      const yBarre = my + 8 - h;
       ctx.fillStyle = '#1a1420';
       ctx.fillRect(mx - largeurBarre / 2 - 1, yBarre - 1, largeurBarre + 2, 6);
       ctx.fillStyle = m.boss ? '#f2d16b' : m.elite ? '#ffd94a' : '#e5533f';
       ctx.fillRect(mx - largeurBarre / 2, yBarre, Math.max(0, (m.pv / m.pvMax) * largeurBarre), 4);
     }
+
+    // projectiles (pool) : carrés ennemis, aiguilles des sorts
+    for (const p of PROJECTILES) {
+      if (!p.actif) continue;
+      const px = Math.round(p.x - camX);
+      const py = Math.round(p.y - camY);
+      if (px < -20 || px > ecran.largeur + 20 || py < -20 || py > ecran.hauteur + 20) continue;
+      ctx.fillStyle = p.couleur;
+      if (p.camp === 'sort') {
+        // aiguille : trait fin orienté
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(Math.atan2(p.vy, p.vx));
+        ctx.fillRect(-6, -1, 12, 2);
+        ctx.restore();
+      } else {
+        ctx.fillRect(px - p.taille, py - p.taille, p.taille * 2, p.taille * 2);
+      }
+    }
+
+    // les sorts du Mercier (bobines, ciseaux, pelotes, tourelles, foudre)
+    dessinerSorts(ctx, camX, camY);
   }
 
   // Les compagnons, derrière l'héroïne (barre de PV en donjon)
-  for (const chat of getChats()) {
-    dessinerCompagnon(ctx, chat, SPRITES_DOUGHCAT, camX, camY, enDonjon());
+  if (enDonjon()) {
+    for (const copie of getEscouade()) {
+      dessinerCompagnon(ctx, copie, framesCompagnon(copie.espece), camX, camY, true);
+    }
+  } else {
+    for (const c of getRamasseurs()) {
+      dessinerCompagnon(ctx, c, framesCompagnon(c.espece), camX, camY);
+    }
   }
   const yuumi = getYuumi();
-  if (yuumi) dessinerCompagnon(ctx, yuumi, SPRITES_YUUMI, camX, camY);
+  if (yuumi) dessinerCompagnon(ctx, yuumi, framesCompagnon('yuumi'), camX, camY);
 
   // L'héroïne : ombre + frame animée + flip horizontal
   const bx = Math.round(birb.x - camX);
@@ -358,8 +427,13 @@ function dessinerMonde(): void {
   ctx.save();
   ctx.translate(bx, by + bob);
   if (birb.flip) ctx.scale(-1, 1);
+  // fenêtre de grâce après un coup : l'héroïne clignote
+  if (enDonjon() && graceHeroine() > 0 && Math.floor(performance.now() / 80) % 2 === 0) {
+    ctx.globalAlpha = 0.45;
+  }
   ctx.drawImage(frame, -Math.round(frame.width / 2), -frame.height + 6);
   ctx.restore();
+  ctx.globalAlpha = 1;
 
   dessinerFx(ctx, camX, camY);
 
@@ -560,5 +634,15 @@ demarrerBoucle(update, render);
   state,
   jeu,
   cloud: { disponible: cloudDisponible, pousser: pousserCloud },
-  donjon: { getPorte, getVague, getBoss, degats: _debugDegats },
+  donjon: {
+    getPorte,
+    getVague,
+    getBoss,
+    degats: _debugDegats,
+    monstres: getMonstres,
+    escouade: getEscouade,
+    projectiles: nbProjectilesActifs,
+    telegraphes: () => getTelegraphes().length,
+  },
+  rebirb: faireRebirb,
 };

@@ -1,8 +1,16 @@
 // Overlays modaux : menu Échap (volume, sauvegarde, export/import, reset)
 // et profil (plan 07, étape 4 ; plan 08, étape 6 pour la fiche de stats).
 
-import { MONNAIES, THEME } from '../data/config';
+import { MONNAIES, THEME, ZONES } from '../data/config';
 import { zonesDebloquees } from '../data/progression';
+import { PARCHEMINS } from '../data/parchemins';
+import { NIVEAU_MAX_SORT, SORTS, multNiveauSort, type SortDef } from '../data/sorts';
+import { SWARM, coutNiveauSort, coutParchemin } from '../data/swarm';
+import {
+  COMPAGNONS_BIOMES,
+  UNITES_MAX,
+  type CompagnonBiomeDef,
+} from '../data/compagnons-biomes';
 import { recalculerStats, state } from '../core/state';
 import { el, formatNombre } from '../core/utils';
 import { apiBureau, exporterJSON, importerJSON, reinitialiser, sauvegarder } from '../systems/save';
@@ -304,6 +312,37 @@ export function ouvrirConfirmationPorte(
   }
   modal.appendChild(el('div', 'ligne-modal', 'K.O. = retour à l’Antre, butin conservé.'));
 
+  // escouade (plan 13 §5) : max 3 copies de combat, choix mémorisé
+  const debloquees = COMPAGNONS_BIOMES.filter(
+    (c) => (state.save.compagnons[c.id] ?? 0) >= UNITES_MAX
+  );
+  if (debloquees.length > 0) {
+    modal.appendChild(
+      el('div', 'ligne-modal', `— ESCOUADE (MAX ${SWARM.compagnons.escouadeMax}) —`)
+    );
+    for (const def of debloquees) {
+      const ligne = el('label', 'ligne-modal ligne-escouade');
+      const case_ = el('input') as HTMLInputElement;
+      case_.type = 'checkbox';
+      case_.checked = state.save.swarm.escouade.includes(def.id);
+      case_.addEventListener('change', () => {
+        const escouade = state.save.swarm.escouade.filter((id) => id !== def.id);
+        if (case_.checked) {
+          if (escouade.length >= SWARM.compagnons.escouadeMax) {
+            case_.checked = false;
+            ajouterToast(`${SWARM.compagnons.escouadeMax} COPIES MAXIMUM !`);
+            return;
+          }
+          escouade.push(def.id);
+        }
+        state.save.swarm.escouade = escouade;
+        sauvegarder();
+      });
+      ligne.append(case_, el('span', '', ` ${def.nom} — ${def.combat.descRole}`));
+      modal.appendChild(ligne);
+    }
+  }
+
   const btnEntrer = el('button', 'btn btn-modal affordable', 'ENTRER ⚔');
   btnEntrer.addEventListener('click', () => {
     fermerModal();
@@ -532,6 +571,283 @@ export function ouvrirMikudex(): void {
 export function basculerMikudex(): void {
   if (modalOuvert()) fermerModal();
   else ouvrirMikudex();
+}
+
+// ------------------------------------------- le Mercier (plan 11)
+
+const ACCUEILS_MERCIER = [
+  '« Du fil doré, tout juste arrivé ! »',
+  '« Ces ciseaux ? Forgés dans un rêve. »',
+  '« Reviens me voir après la porte suivante… »',
+  '« Une couturière sans parchemins, c’est une aiguille sans fil. »',
+  '« Psst. Les bobines orbitales. Crois-moi. »',
+];
+
+let ongletMercier: 'patrons' | 'sortileges' = 'patrons';
+
+function niveauSortSave(id: string): number {
+  return state.save.sorts[id] ?? 0;
+}
+
+function carteParchemin(defRefresh: () => void): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  for (const def of PARCHEMINS) {
+    const niv = state.save.parchemins[def.id] ?? 0;
+    const carte = el('div', 'carte');
+    const haut = el('div', 'carte-haut');
+    haut.append(
+      el('span', 'carte-nom', `${def.icone} ${def.nom}`),
+      el('span', 'carte-niveau', `NIV. ${niv}/${def.max}`)
+    );
+    carte.appendChild(haut);
+    carte.appendChild(el('div', 'carte-desc', def.description(niv)));
+    // barre de progression fine (satisfaction visuelle : c'est un idle game)
+    const barre = el('div', 'barre-parchemin');
+    const rempli = el('div', 'barre-parchemin-remplie');
+    rempli.style.width = `${(niv / def.max) * 100}%`;
+    barre.appendChild(rempli);
+    carte.appendChild(barre);
+    const btn = el('button', 'btn btn-achat');
+    if (niv >= def.max) {
+      btn.textContent = 'COUSU AU MAX ✔';
+      btn.disabled = true;
+    } else {
+      const cout = coutParchemin(def.coutBase, niv);
+      const solde = state.save.soldes.popcorn;
+      btn.textContent = `${formatNombre(cout, 0)} ${THEME.monnaies.popcorn.nom}`;
+      btn.disabled = solde < cout;
+      btn.classList.toggle('affordable', solde >= cout);
+      btn.addEventListener('click', () => {
+        if (state.save.soldes.popcorn < cout) return;
+        state.save.soldes.popcorn -= cout;
+        state.save.parchemins[def.id] = niv + 1;
+        recalculerStats();
+        sons.achat();
+        sauvegarder();
+        defRefresh();
+      });
+    }
+    carte.appendChild(btn);
+    frag.appendChild(carte);
+  }
+  return frag;
+}
+
+function pipsNiveau(niv: number): string {
+  return '●'.repeat(niv) + '○'.repeat(NIVEAU_MAX_SORT - niv);
+}
+
+function carteSort(def: SortDef, defRefresh: () => void): HTMLElement {
+  const niv = niveauSortSave(def.id);
+  const carte = el('div', 'carte');
+  const haut = el('div', 'carte-haut');
+  haut.append(
+    el('span', 'carte-nom', def.nom),
+    el('span', 'carte-niveau', niv > 0 ? pipsNiveau(niv) : 'VERROUILLÉ')
+  );
+  carte.appendChild(haut);
+  carte.appendChild(el('div', 'carte-desc', `${def.description} (${def.clin})`));
+
+  if (niv === 0) {
+    const cout = def.coutDeblocage;
+    const btn = el('button', 'btn btn-achat');
+    if (cout === 0) {
+      btn.textContent = 'OFFERT PAR LE MERCIER 🎁';
+      btn.classList.add('affordable');
+      btn.addEventListener('click', () => {
+        state.save.sorts[def.id] = 1;
+        sons.rebirb();
+        ajouterToast(`${def.nom} APPRIS !`);
+        sauvegarder();
+        defRefresh();
+      });
+    } else {
+      btn.textContent = `DÉBLOQUER : ${formatNombre(cout, 0)} ${THEME.monnaies.popcorn.nom}`;
+      btn.disabled = state.save.soldes.popcorn < cout;
+      btn.classList.toggle('affordable', state.save.soldes.popcorn >= cout);
+      btn.addEventListener('click', () => {
+        if (state.save.soldes.popcorn < cout) return;
+        state.save.soldes.popcorn -= cout;
+        state.save.sorts[def.id] = 1;
+        sons.rebirb();
+        ajouterToast(`${def.nom} APPRIS ! ✂`);
+        sauvegarder();
+        defRefresh();
+      });
+    }
+    carte.appendChild(btn);
+    return carte;
+  }
+
+  // montée de niveau (2..6)
+  if (niv < NIVEAU_MAX_SORT) {
+    const cout = coutNiveauSort(def.coutDeblocage || 400, niv + 1);
+    carte.appendChild(
+      el('div', 'carte-desc', `NIV. ${niv + 1} : ${def.effets[niv - 1].texte}`)
+    );
+    const btn = el(
+      'button',
+      'btn btn-achat',
+      `AMÉLIORER : ${formatNombre(cout, 0)} ${THEME.monnaies.popcorn.nom}`
+    );
+    btn.disabled = state.save.soldes.popcorn < cout;
+    btn.classList.toggle('affordable', state.save.soldes.popcorn >= cout);
+    btn.addEventListener('click', () => {
+      if (state.save.soldes.popcorn < cout) return;
+      state.save.soldes.popcorn -= cout;
+      state.save.sorts[def.id] = niv + 1;
+      sons.achat();
+      sauvegarder();
+      defRefresh();
+    });
+    carte.appendChild(btn);
+  } else {
+    carte.appendChild(
+      el('div', 'carte-desc', `×${multNiveauSort(def, niv).toFixed(1)} dégâts — niveau maximal.`)
+    );
+  }
+
+  // évolution : sort niv. 6 ET parchemin lié ≥ 5 → payée en dorés
+  const evoluee = state.save.evolutions[def.id] === true;
+  const parcheminLie = PARCHEMINS.find((p) => p.id === def.evolution.parcheminLie);
+  const nivParchemin = state.save.parchemins[def.evolution.parcheminLie] ?? 0;
+  if (evoluee) {
+    carte.appendChild(el('div', 'carte-desc', `★ ${def.evolution.nom} — ${def.evolution.effet}`));
+  } else if (niv >= NIVEAU_MAX_SORT && nivParchemin >= 5) {
+    const cout = SWARM.coutEvolutionDores;
+    const btn = el(
+      'button',
+      'btn btn-achat affordable btn-evolution',
+      `★ ÉVOLUER : ${def.evolution.nom} — ${formatNombre(cout, 0)} ${THEME.dore.pluriel}`
+    );
+    btn.disabled = state.save.soldeDore < cout;
+    btn.addEventListener('click', () => {
+      if (state.save.soldeDore < cout) return;
+      state.save.soldeDore -= cout;
+      state.save.evolutions[def.id] = true;
+      sons.rebirb();
+      ajouterToast(`★ ${def.evolution.nom} ! ${def.evolution.effet}`);
+      sauvegarder();
+      defRefresh();
+    });
+    carte.appendChild(btn);
+  } else {
+    carte.appendChild(
+      el(
+        'div',
+        'carte-desc carte-verrou',
+        `ÉVOLUTION « ${def.evolution.nom} » : NIV. 6 + ${parcheminLie?.nom ?? ''} 5 requis (act. ${nivParchemin}/5)`
+      )
+    );
+  }
+  return carte;
+}
+
+export function ouvrirMercier(): void {
+  ouvrir();
+  modal.appendChild(el('h2', '', '🧵 LE MERCIER'));
+  modal.appendChild(
+    el('p', 'rebirb-explication', ACCUEILS_MERCIER[Math.floor(Math.random() * ACCUEILS_MERCIER.length)])
+  );
+  modal.appendChild(
+    el(
+      'div',
+      'ligne-modal',
+      `${THEME.monnaies.popcorn.nom} : ${formatNombre(state.save.soldes.popcorn, 0)} — ${THEME.dore.pluriel} : ${formatNombre(state.save.soldeDore, 0)}`
+    )
+  );
+
+  const onglets = el('div', 'ligne-modal');
+  const btnPatrons = el(
+    'button',
+    `btn btn-modal${ongletMercier === 'patrons' ? ' affordable' : ''}`,
+    'PATRONS DE COUTURE'
+  );
+  const btnSorts = el(
+    'button',
+    `btn btn-modal${ongletMercier === 'sortileges' ? ' affordable' : ''}`,
+    'SORTILÈGES COUSUS'
+  );
+  btnPatrons.addEventListener('click', () => {
+    ongletMercier = 'patrons';
+    ouvrirMercier();
+  });
+  btnSorts.addEventListener('click', () => {
+    ongletMercier = 'sortileges';
+    ouvrirMercier();
+  });
+  onglets.append(btnPatrons, btnSorts);
+  modal.appendChild(onglets);
+
+  if (ongletMercier === 'patrons') {
+    modal.appendChild(carteParchemin(ouvrirMercier));
+  } else {
+    for (const def of SORTS) modal.appendChild(carteSort(def, ouvrirMercier));
+  }
+
+  const fermer = el('button', 'btn btn-modal', 'FERMER (M)');
+  fermer.addEventListener('click', fermerModal);
+  modal.appendChild(fermer);
+}
+
+export function basculerMercier(): void {
+  if (modalOuvert()) fermerModal();
+  else ouvrirMercier();
+}
+
+// --------------------------------- l'adoption de compagnons (plan 13)
+
+export function ouvrirAdoption(def: CompagnonBiomeDef): void {
+  ouvrir();
+  const u = state.save.compagnons[def.id] ?? 0;
+  modal.appendChild(el('h2', '', `${def.nomPluriel} — ${u}/${UNITES_MAX}`));
+  modal.appendChild(
+    el(
+      'p',
+      'rebirb-explication',
+      `${def.nomPluriel} récoltent dans ${ZONES[def.zone].nom} — même quand tu es ailleurs (jeu ouvert). Les achats survivent à la ${THEME.prestige.verbe.toLowerCase()}.`
+    )
+  );
+  modal.appendChild(el('div', 'ligne-modal', `RÔLE À 4/4 : ${def.combat.descRole}`));
+
+  if (u >= UNITES_MAX) {
+    modal.appendChild(el('div', 'ligne-modal', '★ COPIE DE COMBAT DÉBLOQUÉE — choisis ton escouade sur une porte de l’Antre !'));
+  } else {
+    const cout = def.couts[u];
+    const monnaie = def.monnaieAchat === 'dore' ? null : def.monnaieAchat;
+    const nomMonnaie = monnaie === null ? THEME.dore.pluriel : THEME.monnaies[monnaie].nom;
+    const solde = monnaie === null ? state.save.soldeDore : state.save.soldes[monnaie];
+    const btn = el(
+      'button',
+      'btn btn-achat',
+      `ADOPTER (${u + 1}/${UNITES_MAX}) : ${formatNombre(cout, 0)} ${nomMonnaie}`
+    );
+    btn.disabled = solde < cout;
+    btn.classList.toggle('affordable', solde >= cout);
+    btn.addEventListener('click', () => {
+      if (monnaie === null) {
+        if (state.save.soldeDore < cout) return;
+        state.save.soldeDore -= cout;
+      } else {
+        if (state.save.soldes[monnaie] < cout) return;
+        state.save.soldes[monnaie] -= cout;
+      }
+      state.save.compagnons[def.id] = u + 1;
+      sons.niveau();
+      ajouterToast(
+        u + 1 >= UNITES_MAX
+          ? `★ ${def.nom} 4/4 — COPIE DE COMBAT DÉBLOQUÉE !`
+          : `UN ${def.nom} REJOINT LE BIOME ! (${u + 1}/${UNITES_MAX})`
+      );
+      sauvegarder();
+      ouvrirAdoption(def);
+    });
+    modal.appendChild(btn);
+  }
+
+  const fermer = el('button', 'btn btn-modal', 'FERMER');
+  fermer.addEventListener('click', fermerModal);
+  modal.appendChild(fermer);
 }
 
 export function ouvrirProfil(): void {
