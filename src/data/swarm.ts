@@ -150,6 +150,9 @@ export const SWARM = {
     tickSec: 5, // récolte statistique des biomes inactifs
     rendementTick: 0.8, // collectible-équivalent par unité et par tick
     rendementDoreTick: 0.4,
+    respawnBaseSec: 45,
+    respawnParNiveauSec: 0.75,
+    respawnMaxSec: 150,
     vitesse: { defaut: 170, foret: 130, mine: 140 } as Record<string, number>,
     escouadeMax: 3, // copies de combat simultanées (plan 13 §5)
     porteeTaunt: 90, // le tank « provoque » les monstres à moins de ça

@@ -33,6 +33,8 @@ import {
 import { bonusDuJour, faireOffrande, offrandeDisponible, offrandeDuJour } from '../systems/calendrier';
 import { NIVEAU_MAX_SORT, SORTS, multNiveauSort, type SortDef } from '../data/sorts';
 import { SWARM, coutNiveauSort, coutParchemin } from '../data/swarm';
+import { BUFFS_MATIERES, PREPARATIONS_MATIERES, coutReparationPorte } from '../data/matieres';
+import { PORTES } from '../data/portes';
 import {
   COMPAGNONS_BIOMES,
   UNITES_MAX,
@@ -53,6 +55,14 @@ import { ajouterToast } from './toasts';
 import { ouvrirSelection } from './creation';
 import { profilActif } from '../systems/profils';
 import { cloudDisponible, codeSync } from '../systems/cloud';
+import {
+  acheterBuffMatiere,
+  acheterPreparationMatiere,
+  peutPayerCout,
+  reparerSoclePorte,
+  tempsBuffMatiere,
+  texteCout,
+} from '../systems/matieres';
 
 let fond: HTMLElement;
 let modal: HTMLElement;
@@ -984,6 +994,95 @@ export function ouvrirMercier(): void {
 export function basculerMercier(): void {
   if (modalOuvert()) fermerModal();
   else ouvrirMercier();
+}
+
+// --------------------------------- l'Atelier des matières
+
+function formatDuree(sec: number): string {
+  const s = Math.max(0, Math.ceil(sec));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${r.toString().padStart(2, '0')}`;
+}
+
+function ligneSoldesMatieres(): HTMLElement {
+  return el(
+    'div',
+    'ligne-modal',
+    `${THEME.monnaies.graine.nom} : ${formatNombre(state.save.soldes.graine, 0)} — ` +
+      `${THEME.monnaies.brindille.nom} : ${formatNombre(state.save.soldes.brindille, 0)} — ` +
+      `${THEME.monnaies.minerai.nom} : ${formatNombre(state.save.soldes.minerai, 0)}`
+  );
+}
+
+export function ouvrirAtelierMatieres(): void {
+  ouvrir();
+  modal.appendChild(el('h2', '', 'ATELIER DES MATIÈRES'));
+  modal.appendChild(
+    el(
+      'p',
+      'rebirb-explication',
+      'Les Miku règlent le spectacle, les minerais préparent les portes, et les surplus recousent les socles de l’Envers.'
+    )
+  );
+  modal.appendChild(ligneSoldesMatieres());
+
+  modal.appendChild(el('div', 'ligne-modal', '— SCÈNE : BONUS TEMPORAIRES —'));
+  for (const def of BUFFS_MATIERES) {
+    const carte = el('div', 'carte');
+    const actif = tempsBuffMatiere(def.id);
+    carte.appendChild(el('div', 'carte-nom', `${def.nom}${actif > 0 ? ` — ${formatDuree(actif)}` : ''}`));
+    carte.appendChild(el('div', 'carte-desc', def.desc));
+    const btn = el('button', 'btn btn-achat', `LANCER : ${texteCout(def.cout)}`);
+    btn.disabled = !peutPayerCout(def.cout);
+    btn.classList.toggle('affordable', peutPayerCout(def.cout));
+    btn.addEventListener('click', () => {
+      if (acheterBuffMatiere(def.id)) ouvrirAtelierMatieres();
+    });
+    carte.appendChild(btn);
+    modal.appendChild(carte);
+  }
+
+  modal.appendChild(el('div', 'ligne-modal', '— FORGE : PROCHAINE PORTE —'));
+  for (const def of PREPARATIONS_MATIERES) {
+    const carte = el('div', 'carte');
+    const prete = state.save.matieres.preparations[def.id] === true;
+    carte.appendChild(el('div', 'carte-nom', `${def.nom}${prete ? ' — PRÊT' : ''}`));
+    carte.appendChild(el('div', 'carte-desc', def.desc));
+    const btn = el('button', 'btn btn-achat', prete ? 'DÉJÀ PRÊT' : `PRÉPARER : ${texteCout(def.cout)}`);
+    btn.disabled = prete || !peutPayerCout(def.cout);
+    btn.classList.toggle('affordable', !prete && peutPayerCout(def.cout));
+    btn.addEventListener('click', () => {
+      if (acheterPreparationMatiere(def.id)) ouvrirAtelierMatieres();
+    });
+    carte.appendChild(btn);
+    modal.appendChild(carte);
+  }
+
+  const reparables = PORTES.filter(
+    (p) => !p.sansFin && (state.save.swarm.termines[p.niveau] ?? 0) > 0 && !state.save.matieres.portesReparees.includes(p.niveau)
+  );
+  modal.appendChild(el('div', 'ligne-modal', '— DÉCOR : SOCLES DE PORTES —'));
+  if (reparables.length === 0) {
+    modal.appendChild(el('div', 'carte-desc', 'Aucun socle à recoudre pour le moment.'));
+  } else {
+    for (const porte of reparables) {
+      const cout = coutReparationPorte(porte.niveau);
+      const btn = el('button', 'btn btn-achat', `PORTE ${porte.niveau} — ${porte.nom} : ${texteCout(cout)}`);
+      btn.disabled = !peutPayerCout(cout);
+      btn.classList.toggle('affordable', peutPayerCout(cout));
+      btn.addEventListener('click', () => {
+        if (reparerSoclePorte(porte.niveau, cout)) ouvrirAtelierMatieres();
+      });
+      modal.appendChild(btn);
+    }
+  }
+
+  const reparees = state.save.matieres.portesReparees.length;
+  modal.appendChild(el('div', 'ligne-modal', `SOCLES RECOUSUS : ${reparees}/12`));
+  const fermer = el('button', 'btn btn-modal', 'FERMER');
+  fermer.addEventListener('click', fermerModal);
+  modal.appendChild(fermer);
 }
 
 // --------------------------------- l'adoption de compagnons (plan 13)

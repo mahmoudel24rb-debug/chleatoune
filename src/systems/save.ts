@@ -111,6 +111,17 @@ function fusionner(brut: unknown): SaveData {
     },
     aquarium: { ...(d.aquarium ?? {}) },
     venteAuto: d.venteAuto ?? 'jamais',
+    matieres: {
+      buffs: {
+        ...defauts.matieres.buffs,
+        ...(d.matieres?.buffs ?? {}),
+      },
+      preparations: {
+        ...defauts.matieres.preparations,
+        ...(d.matieres?.preparations ?? {}),
+      },
+      portesReparees: Array.isArray(d.matieres?.portesReparees) ? d.matieres.portesReparees : [],
+    },
   };
   // Migration v1 → v2 : le bonus passif passe sur les plumes cumulées.
   if ((d.version ?? 1) < 2 && d.cumulPlumes === undefined) {

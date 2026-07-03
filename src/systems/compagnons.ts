@@ -22,6 +22,7 @@ import type { Collectible } from '../entities/collectible';
 import { entitesZoneActive } from './spawner';
 import { crediter, crediterDore, encaisserCollectible } from './economy';
 import { multPatee } from './besace';
+import { multPvCompagnonsDonjon, multRecolteCompagnons, multRespawnCompagnonsDonjon } from './matieres';
 
 export interface Compagnon {
   /** id d'espèce ('prairie', 'scene'…) ou 'yuumi' */
@@ -64,7 +65,7 @@ export function especesCombat(): CompagnonBiomeDef[] {
 }
 
 function vitesseEspece(espece: string): number {
-  return (SWARM.compagnons.vitesse[espece] ?? SWARM.compagnons.vitesse.defaut) * multPatee(espece);
+  return (SWARM.compagnons.vitesse[espece] ?? SWARM.compagnons.vitesse.defaut) * multPatee(espece) * multRecolteCompagnons();
 }
 
 // --------------------------------------------- ramasseurs (zone active)
@@ -164,10 +165,10 @@ function tickRecolteDistante(): void {
     const patee = multPatee(def.id);
     if (def.monnaieAchat === 'dore') {
       const bonus = state.save.desert['d_moisson'] ? 2 : 1;
-      crediterDore(u * SWARM.compagnons.rendementDoreTick * bonus * patee, 0, 0, true);
+      crediterDore(u * SWARM.compagnons.rendementDoreTick * bonus * patee * multRecolteCompagnons(), 0, 0, true);
     } else {
       const monnaie = ZONES[def.zone].monnaie;
-      const gain = u * SWARM.compagnons.rendementTick * state.stats.monnaies[monnaie].valeur * patee;
+      const gain = u * SWARM.compagnons.rendementTick * state.stats.monnaies[monnaie].valeur * patee * multRecolteCompagnons();
       crediter(monnaie, gain, 0, 0, true);
     }
   }
@@ -184,14 +185,15 @@ export function getEscouade(): Compagnon[] {
 /** PV et dégâts d'une copie selon son rôle (plan 13 §5). */
 function statsRole(def: CompagnonBiomeDef): { pv: number; degats: number } {
   const s = state.stats;
+  const multPv = multPvCompagnonsDonjon();
   switch (def.combat.role) {
     case 'tank':
-      return { pv: Math.ceil(s.pvMax * 0.6), degats: Math.max(1, Math.round(s.degats * def.combat.partStats)) };
+      return { pv: Math.ceil(s.pvMax * 0.6 * multPv), degats: Math.max(1, Math.round(s.degats * def.combat.partStats)) };
     case 'soigneur':
-      return { pv: Math.ceil(s.pvMax * 0.4), degats: 0 };
+      return { pv: Math.ceil(s.pvMax * 0.4 * multPv), degats: 0 };
     default:
       return {
-        pv: Math.ceil(s.pvMax * def.combat.partStats),
+        pv: Math.ceil(s.pvMax * def.combat.partStats * multPv),
         degats: Math.max(1, Math.round(s.degats * def.combat.partStats)),
       };
   }
@@ -222,7 +224,12 @@ export function viderEscouade(): void {
 
 /** Délai de respawn d'une copie K.O. : grandit avec le niveau. */
 export function delaiRespawnChat(): number {
-  return Math.min(120, 30 + state.save.heros.niveau * 0.5);
+  return (
+    Math.min(
+      SWARM.compagnons.respawnMaxSec,
+      SWARM.compagnons.respawnBaseSec + state.save.heros.niveau * SWARM.compagnons.respawnParNiveauSec
+    ) * multRespawnCompagnonsDonjon()
+  );
 }
 
 // ------------------------------------------------------------- boucle

@@ -7,11 +7,11 @@ import { PORTES, type PorteDef } from '../data/portes';
 import { jeu } from '../core/mode';
 import { state } from '../core/state';
 import { birb } from '../entities/birb';
-import { spritePorte, SPRITE_TAPIS, SPRITE_MARCHAND, SPRITE_TROPHEE } from '../core/structures';
+import { spritePorte, SPRITE_TAPIS, SPRITE_MARCHAND, SPRITE_TROPHEE, SPRITES_PANNEAUX } from '../core/structures';
 import { spriteMercier } from '../core/sprites';
 import { enregistrer, type Interactif } from './interactions';
 import { ajouterToast } from '../ui/toasts';
-import { ouvrirConfirmationPorte, ouvrirMercier } from '../ui/overlays';
+import { ouvrirAtelierMatieres, ouvrirConfirmationPorte, ouvrirMercier } from '../ui/overlays';
 import { entrerDonjon, essayerSortirDonjon } from './donjon';
 import { parlerAuPnj, pnjAUneEtape } from './filrouge';
 import { sauvegarder } from './save';
@@ -68,12 +68,15 @@ export function amenagerAntre(): void {
       const record = p.sansFin && state.save.swarm.sansFinRecord > 0
         ? ` · RECORD V.${state.save.swarm.sansFinRecord}`
         : '';
-      return `${p.sansFin ? '∞' : `PORTE ${p.niveau}`} — ${p.nom}${fois > 0 ? ` ✔×${fois}` : ''}${record}`;
+      const socle = state.save.matieres.portesReparees.includes(p.niveau) ? '◆ ' : '';
+      return `${socle}${p.sansFin ? '∞' : `PORTE ${p.niveau}`} — ${p.nom}${fois > 0 ? ` ✔×${fois}` : ''}${record}`;
     },
     pulse: () => porteDebloquee(p) && !p.sansFin && p.niveau === state.save.swarm.porteMax,
     texte: () =>
       porteDebloquee(p)
-        ? `${p.nom} (${BIOMES_EXPEDITION[p.biome].nom})\n${p.sansFin ? 'Vagues infinies. Jusqu’où ?' : `${p.nbVagues} vagues, boss : ${p.nomBoss}`}`
+        ? `${p.nom} (${BIOMES_EXPEDITION[p.biome].nom})\n${p.sansFin ? 'Vagues infinies. Jusqu’où ?' : `${p.nbVagues} vagues, boss : ${p.nomBoss}`}${
+            state.save.matieres.portesReparees.includes(p.niveau) ? '\nSOCLE RECOUSU ◆' : ''
+          }`
         : 'TERMINE LA PORTE PRÉCÉDENTE POUR OUVRIR CELLE-CI',
     action: () => {
       if (!porteDebloquee(p)) {
@@ -83,6 +86,17 @@ export function amenagerAntre(): void {
       ouvrirConfirmationPorte(p, () => entrerDonjon(p));
     },
   }));
+
+  interactifs.push({
+    id: 'atelier-matieres',
+    x: CONFIG.monde.largeur / 2,
+    y: CONFIG.monde.hauteur - 330,
+    rayon: 95,
+    sprite: () => SPRITES_PANNEAUX.disponible,
+    etiquette: () => 'ATELIER DES MATIÈRES',
+    texte: () => 'DÉPENSER MIKU, BRINDILLES ET MINERAI\nBonus de récolte, forge et socles de portes.',
+    action: ouvrirAtelierMatieres,
+  });
 
   // LE MERCIER (plan 11) : près de l'entrée, impossible à rater
   interactifs.push({

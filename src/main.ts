@@ -76,6 +76,7 @@ import { garantirQuetes } from './systems/quetes';
 import { initSucces, majSucces } from './systems/succes';
 import { cibleAideChasse, majChasse } from './systems/chasses';
 import { cercleScene, initFilRouge, majFilRouge } from './systems/filrouge';
+import { tickMatieres } from './systems/matieres';
 import { avancerDialogue, couperDialogue, dialogueEnCours, majDialogue } from './ui/dialogue';
 import { ajouterParticules, dessinerFx, majFx } from './systems/fx';
 import { nomArchimonstre } from './data/archimonstres';
@@ -256,6 +257,7 @@ function update(dt: number): void {
   }
 
   majFx(dt);
+  tickMatieres(dt);
   majSucces(dt);
   majChasse(dt);
   majFilRouge(dt);

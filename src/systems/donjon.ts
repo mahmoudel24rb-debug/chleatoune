@@ -74,6 +74,7 @@ import { sauvegarder } from './save';
 import { ajouterToast } from '../ui/toasts';
 import { ouvrirFinDonjon } from '../ui/overlays';
 import { entrerAntre } from './antre';
+import { appliquerPreparationsDonjon } from './matieres';
 
 export type RareteCoffre = 'commun' | 'rare' | 'epique' | 'legendaire';
 export type PhaseDonjon = 'combat' | 'pause' | 'boss' | 'victoire';
@@ -451,6 +452,7 @@ export function entrerDonjon(p: PorteDef): void {
   viderTelegraphes();
   viderProjectiles();
   viderSorts();
+  appliquerPreparationsDonjon();
   preparerEscouade();
   vagueIndex = 0;
   vagueSansFin = 0;

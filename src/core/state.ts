@@ -7,6 +7,7 @@ import { COMBAT, type CompetenceId } from '../data/combat';
 import { EFFETS_PARCHEMINS } from '../data/parchemins';
 import { talentPossede } from '../data/talents';
 import type { TypeQuete } from '../data/desert';
+import { BONUS_MATIERES, type BuffMatiereId, type PreparationMatiereId } from '../data/matieres';
 
 export interface SaveData {
   version: number;
@@ -114,6 +115,12 @@ export interface SaveData {
   /** le Grand Aquarium : 1 spécimen donné (CONSOMMÉ) par espèce */
   aquarium: Record<string, { shiny: boolean }>;
   venteAuto: 'jamais' | 'communs' | 'exposes';
+  /** Atelier des matières : sinks Miku/Minerai/Brindilles. */
+  matieres: {
+    buffs: Record<BuffMatiereId, number>;
+    preparations: Record<PreparationMatiereId, boolean>;
+    portesReparees: number[];
+  };
 }
 
 function zeros(): Record<MonnaieId, number> {
@@ -169,6 +176,11 @@ export function defautsSave(): SaveData {
     inventaire: { poissons: {}, plats: {} },
     aquarium: {},
     venteAuto: 'jamais',
+    matieres: {
+      buffs: { concert: 0, projecteurs: 0 },
+      preparations: { renfort: false, kit: false },
+      portesReparees: [],
+    },
   };
 }
 
@@ -258,7 +270,10 @@ export function recalculerStats(): void {
   s.multGlobal = (1 + 0.2 * state.save.sacrifices) * (a('t_etoile') ? 2 : 1);
   s.multXp = a('t_xp') ? 1.3 : 1;
   s.rayonAimant =
-    CONFIG.auto.rayonAimant * (a('t_aimant') ? 1.6 : 1) * (1 + EFFETS_PARCHEMINS.aimant * p('aimant'));
+    CONFIG.auto.rayonAimant *
+    (a('t_aimant') ? 1.6 : 1) *
+    (1 + EFFETS_PARCHEMINS.aimant * p('aimant')) *
+    (state.save.matieres.buffs.projecteurs > 0 ? 1 + BONUS_MATIERES.projecteursRayonAuto : 1);
   s.vitesseChats = a('t_chats') ? 1.4 : 1;
   s.generateur = a('t_generateur') ? 1 : 0;
   s.multCoffres = (a('t_coffres') ? 1.5 : 1) * (1 + 0.1 * state.save.sacrifices);
