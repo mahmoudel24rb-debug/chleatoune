@@ -115,5 +115,10 @@ export const CONFIG = {
   camera: { lissage: 8 },
   tauxFenetreSec: 10,
   autosaveSec: 10,
+  // NE PAS « corriger » ce nom : c'est la clé localStorage HISTORIQUE
+  // (avant les personnages multiples). Elle ne sert plus qu'à la
+  // migration automatique dans systems/profils.ts, et les sauvegardes
+  // par personnage gardent le préfixe birblike_save_<id> pour la même
+  // raison de rétrocompatibilité.
   cleSauvegarde: 'birblike_save_v1',
 };

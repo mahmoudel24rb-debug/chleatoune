@@ -83,10 +83,12 @@ initHud();
 initInteractions();
 amenagerCartes();
 construirePanneau();
-appliquerGainsHorsLigne();
 centrerCamera(birb.x, birb.y, ecran.largeur, ecran.hauteur);
-initCreation(); // premier lancement : écran de création de personnage
-void initCloud(); // sauvegarde cloud (active seulement une fois déployé)
+initCreation(); // premier lancement : écran d'accueil (créer / se connecter)
+// Les gains hors-ligne s'appliquent APRÈS la synchro cloud : si la partie
+// a avancé sur un autre appareil, c'est la version adoptée qui les reçoit
+// (sinon ils seraient calculés puis écrasés silencieusement).
+void initCloud().then(() => appliquerGainsHorsLigne());
 initBeaconCloud(); // dernière synchro garantie à la fermeture de l'onglet
 
 // PWA : le service worker rend le jeu installable et jouable hors-ligne
