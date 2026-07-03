@@ -21,7 +21,7 @@ import {
 } from '../data/poissons';
 import { PECHE, tirerMordillages } from '../data/peche-config';
 import { APPATS, CANNES, DELAI_PECHEUR } from '../data/peche-boutique';
-import { crediter } from './economy';
+import { ajouterPoisson, venteAutoALaCapture } from './besace';
 import { bonusActif } from './calendrier';
 import { progresserQuete } from './quetes';
 import { evaluerSucces } from './succes';
@@ -156,12 +156,22 @@ function gagnerXpPeche(montant: number): void {
   }
 }
 
-/** Enregistre une capture : dex, records, gains, XP, quêtes, succès. */
+/** Enregistre une capture : BESACE (plan 18 §1 — l'XP tombe tout de
+ *  suite, la VALEUR attend la vente), dex, records, quêtes, succès. */
 function enregistrerCapture(espece: EspecePoisson, shiny: boolean, taille: number, part = 1): boolean {
   const r = RARETES[espece.rarete];
-  crediter('popcorn', r.valeur * (shiny ? 10 : 1) * part, 0, 0, true);
+  ajouterPoisson(espece.id, shiny);
   gagnerXpPeche(r.xp * (shiny ? 3 : 1) * part);
+  // les quêtes « pêcher » comptent la CAPTURE, pas la vente
   progresserQuete('pecher', 1);
+  // vente automatique (option de confort — jamais un shiny)
+  venteAutoALaCapture(espece.id, shiny);
+  // au bout de 20 captures : proposer l'option, une seule fois
+  const totalCaptures = Object.values(state.save.peche.dex).reduce((n, e) => n + e.captures, 0);
+  if (totalCaptures === 19 && !state.save.drapeaux.venteAutoProposee) {
+    state.save.drapeaux.venteAutoProposee = true;
+    ajouterToast('💡 LA BESACE SE REMPLIT ! ACTIVE LA VENTE AUTO DANS LA BESACE (I).');
+  }
 
   const dex = state.save.peche.dex;
   const entree = dex[espece.id] ?? { captures: 0, shiny: 0, tailleRecord: 0 };

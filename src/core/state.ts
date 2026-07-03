@@ -74,6 +74,8 @@ export interface SaveData {
     sansFinRecord: number;
     /** copies de combat choisies (plan 13, max 3) */
     escouade: string[];
+    /** hotbar de consommables (plan 18 §4) : id de plat ou 'poisson:{id}' */
+    hotbar: (string | null)[];
   };
   /** id de parchemin → niveau (plan 11) — PERMANENT (survit à la recouture) */
   parchemins: Record<string, number>;
@@ -103,6 +105,15 @@ export interface SaveData {
   drapeaux: Record<string, boolean>;
   // ---- plan 15 (additif) ----
   filRouge: { chapitre: number; etape: number; bobines: string[]; compteur: number };
+  // ---- plan 18 (additif) ----
+  /** la BESACE : empilement par espèce, jamais d'objets individuels */
+  inventaire: {
+    poissons: Record<string, { n: number; shiny: number }>;
+    plats: Record<string, number>;
+  };
+  /** le Grand Aquarium : 1 spécimen donné (CONSOMMÉ) par espèce */
+  aquarium: Record<string, { shiny: boolean }>;
+  venteAuto: 'jamais' | 'communs' | 'exposes';
 }
 
 function zeros(): Record<MonnaieId, number> {
@@ -139,7 +150,7 @@ export function defautsSave(): SaveData {
     peche: { niveau: 1, xp: 0, dex: {}, canne: 0, appats: {}, appatActif: null, pecheurs: 0 },
     nid: 0,
     derniereVisite: 0,
-    swarm: { porteMax: 1, termines: {}, sansFinRecord: 0, escouade: [] },
+    swarm: { porteMax: 1, termines: {}, sansFinRecord: 0, escouade: [], hotbar: [null, null, null] },
     parchemins: {},
     sorts: {},
     evolutions: {},
@@ -155,6 +166,9 @@ export function defautsSave(): SaveData {
     calendrier: { dernierJour: '', serie: 0 },
     drapeaux: {},
     filRouge: { chapitre: 1, etape: 0, bobines: [], compteur: 0 },
+    inventaire: { poissons: {}, plats: {} },
+    aquarium: {},
+    venteAuto: 'jamais',
   };
 }
 

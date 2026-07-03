@@ -14,6 +14,7 @@ import { getMaledictionsActives, getPorte, getPv, getVague, pvMaxCourant } from 
 import { defiCourant } from '../systems/defis';
 import { indiceCourant } from '../systems/chasses';
 import { ligneFilRouge } from '../systems/filrouge';
+import { contenuSlot, cooldownGlobal, utiliserSlot } from '../systems/consommables';
 import { sons } from '../systems/audio';
 import { sauvegarder } from '../systems/save';
 import { ajouterToast } from './toasts';
@@ -31,6 +32,8 @@ const capsules = new Map<CleCapsule, Capsule>();
 let btnAuto: HTMLButtonElement;
 let zoneIndicateur: HTMLElement;
 let suivi: HTMLElement;
+let hotbarEl: HTMLElement;
+const slotsHotbar: { slot: HTMLElement; icone: HTMLElement; compteur: HTMLElement; cd: HTMLElement }[] = [];
 let flecheGauche: HTMLButtonElement;
 let flecheDroite: HTMLButtonElement;
 let barreTexte: HTMLElement;
@@ -85,6 +88,21 @@ export function initHud(): void {
   // à gauche, modes monde/antre seulement
   suivi = el('div', 'suivi cache');
   document.getElementById('game-area')!.appendChild(suivi);
+
+  // la hotbar de consommables (plan 18 §4) : donjon uniquement
+  hotbarEl = el('div', 'hotbar cache');
+  for (let i = 0; i < 3; i++) {
+    const slot = el('button', 'hotbar-slot');
+    slot.addEventListener('click', () => utiliserSlot(i));
+    const icone = el('div', 'hotbar-icone');
+    const compteur = el('div', 'hotbar-n');
+    const cd = el('div', 'hotbar-cd');
+    const touche = el('div', 'hotbar-touche', String(i + 1));
+    slot.append(icone, compteur, cd, touche);
+    hotbarEl.appendChild(slot);
+    slotsHotbar.push({ slot, icone, compteur, cd });
+  }
+  document.getElementById('game-area')!.appendChild(hotbarEl);
   flecheGauche = document.getElementById('fleche-gauche') as HTMLButtonElement;
   flecheDroite = document.getElementById('fleche-droite') as HTMLButtonElement;
   flecheGauche.addEventListener('click', () => changerZone(-1));
@@ -241,6 +259,22 @@ export function majHud(): void {
   const enExped = jeu.mode === 'donjon';
   barreXp.style.display = enExped ? '' : 'none';
   barrePv.style.display = enExped ? '' : 'none';
+
+  // la hotbar (plan 18 §4) : slots, stocks et cooldown radial partagé
+  hotbarEl.classList.toggle('cache', !enExped);
+  if (enExped) {
+    const cd = cooldownGlobal();
+    for (let i = 0; i < 3; i++) {
+      const refs = slotsHotbar[i];
+      const contenu = contenuSlot(i);
+      setTexte(refs.icone, contenu?.icone ?? '·');
+      setTexte(refs.compteur, contenu ? `×${contenu.n}` : '');
+      refs.slot.classList.toggle('hotbar-vide', !contenu || contenu.n <= 0);
+      const pct = cd.total > 0 ? (cd.restant / cd.total) * 100 : 0;
+      const hauteurCd = `${pct.toFixed(0)}%`;
+      if (refs.cd.style.height !== hauteurCd) refs.cd.style.height = hauteurCd;
+    }
+  }
   if (enExped) {
     const heros = save.heros;
     setTexte(xpNiveau, `NIV. ${heros.niveau}`);

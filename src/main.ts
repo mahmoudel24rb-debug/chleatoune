@@ -82,6 +82,7 @@ import { charger, initAutosave, sauvegarder } from './systems/save';
 import { basculerAuto, initHud, majHud } from './ui/hud';
 import { construirePanneau, majPanneau } from './ui/panel';
 import {
+  basculerBesace,
   basculerBoutiquePeche,
   basculerMercier,
   basculerMikudex,
@@ -89,8 +90,10 @@ import {
   fermerModal,
   initOverlays,
   modalOuvert,
+  ouvrirAquarium,
   ouvrirProfil,
 } from './ui/overlays';
+import { utiliserSlot } from './systems/consommables';
 import { ajouterToast } from './ui/toasts';
 import { initCreation } from './ui/creation';
 import { basculerModeDev } from './ui/dev';
@@ -147,7 +150,17 @@ surTouche('Escape', () => {
 surTouche('KeyP', () => (modalOuvert() ? fermerModal() : ouvrirProfil()));
 surTouche('KeyT', () => ajouterToast('LE CHAT ARRIVERA AVEC LE MULTIJOUEUR !'));
 surTouche('KeyC', basculerAuto);
-surTouche('KeyF', basculerMikudex);
+surTouche('KeyF', () => {
+  // en mode pêche, F ouvre la vitrine du Grand Aquarium (plan 18 §5)
+  if (jeu.mode === 'peche' && !modalOuvert()) ouvrirAquarium();
+  else basculerMikudex();
+});
+surTouche('KeyI', () => {
+  if (!dialogueEnCours()) basculerBesace();
+});
+surTouche('Digit1', () => utiliserSlot(0));
+surTouche('Digit2', () => utiliserSlot(1));
+surTouche('Digit3', () => utiliserSlot(2));
 surTouche('KeyE', () => {
   if (dialogueEnCours()) avancerDialogue();
   else if (jeu.mode === 'peche') sortirPeche();
@@ -778,6 +791,37 @@ function dessinerPeche(): void {
     ctx.fillStyle = '#fff6c9';
     ctx.fillText('UNE PRISE !', px, py - 20 - (1.4 - prise.t) * 10);
     ctx.globalAlpha = 1;
+  }
+
+  // ---- le Grand Aquarium (plan 18 §5) : l'extension vitrée à droite,
+  // les espèces données Y NAGENT (F pour la contemplation)
+  {
+    const aqW = 150;
+    const aqH = 84;
+    const aqX = largeur - aqW - 8;
+    const aqY = yPonton - aqH;
+    ctx.fillStyle = '#4a3524';
+    ctx.fillRect(aqX - 6, aqY - 6, aqW + 12, aqH + 6); // le cadre
+    ctx.fillStyle = 'rgba(90, 180, 212, 0.8)';
+    ctx.fillRect(aqX, aqY, aqW, aqH); // l'eau du bassin
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillRect(aqX + 6, aqY + 4, 3, aqH - 8); // le reflet de la vitre
+    const donnes = Object.entries(state.save.aquarium);
+    donnes.slice(0, 8).forEach(([id, info], i) => {
+      const sprite = spritePoisson(id, Math.floor(performance.now() / 260 + i) % 2 === 0 ? 0 : 1, 1, info.shiny);
+      if (!sprite) return;
+      const fx = aqX + 12 + ((i * 47 + Math.sin(performance.now() / 1400 + i * 2) * 14 + aqW) % (aqW - 40));
+      const fy = aqY + 10 + ((i * 23) % (aqH - 30)) + Math.sin(performance.now() / 900 + i) * 3;
+      ctx.drawImage(sprite, Math.round(fx), Math.round(fy));
+      if (info.shiny && Math.sin(performance.now() / 250 + i) > 0.6) {
+        ctx.fillStyle = '#fff6c9';
+        ctx.fillRect(Math.round(fx) - 3, Math.round(fy) - 2, 2, 2);
+      }
+    });
+    ctx.font = '8px "Press Start 2P", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#e8e8f0';
+    ctx.fillText(`AQUARIUM ${donnes.length}/16 [F]`, aqX + aqW / 2, aqY - 12);
   }
 
   // ---- l'héroïne, de profil, à la position choisie

@@ -53,6 +53,14 @@ import { progresserQuete, signalerDonjonTermine } from './quetes';
 import { bonusActif } from './calendrier';
 import { evaluerSucces } from './succes';
 import { effilocheuseActive } from './filrouge';
+import {
+  cablerConsommables,
+  majConsommables,
+  multDegatsConsommables,
+  multDoresConsommables,
+  regenConsommables,
+  viderBuffs,
+} from './consommables';
 import { ouvrirDialogue } from '../ui/dialogue';
 import { ajouterParticules, ajouterTexteFlottant } from './fx';
 import { sons } from './audio';
@@ -115,6 +123,26 @@ function maudit(id: string): boolean {
 export function pvMaxCourant(): number {
   return Math.ceil(state.stats.pvMax * (maudit('verre') ? SWARM.maledictions.verrePV : 1));
 }
+
+// les consommables de la hotbar (plan 18 §4) pilotent le donjon par
+// ces deux crochets — évite un énième cycle d'import
+cablerConsommables({
+  soigner: (pct) => {
+    pv = clamp(pv + (pvMaxCourant() * pct) / 100, 0, pvMaxCourant());
+  },
+  ondeDeChoc: () => {
+    // repousse, n'inflige RIEN : un bouton panique, pas un sort gratuit
+    const centre = centreBirb();
+    for (const m of monstres) {
+      if (m.boss) continue;
+      const d = Math.max(1, dist(m.x, m.y, centre.x, centre.y));
+      if (d > SWARM.consommables.porteeOndeChoc) continue;
+      m.x = clamp(m.x + ((m.x - centre.x) / d) * SWARM.consommables.reculOndeChoc, 30, CONFIG.monde.largeur - 30);
+      m.y = clamp(m.y + ((m.y - centre.y) / d) * SWARM.consommables.reculOndeChoc, 30, CONFIG.monde.hauteur - 30);
+    }
+    ajouterParticules(centre.x, centre.y, '#ffffff', 22);
+  },
+});
 
 export function enDonjon(): boolean {
   return jeu.mode === 'donjon';
@@ -410,6 +438,7 @@ export function sortirDonjon(): void {
   viderProjectiles();
   viderSorts();
   viderEscouade();
+  viderBuffs();
   arreterDefi();
   maledictions = [];
   porte = null;
@@ -439,9 +468,11 @@ function rareteCoffrePorte(niveau: number): RareteCoffre {
 
 function ouvrirCoffre(c: Coffre): void {
   const niveau = porte?.niveau ?? 1;
-  // SAMEDI DES COFFRES (plan 16 §5) : butin +25 %
+  // SAMEDI DES COFFRES (plan 16 §5) : butin +25 % ; FRITURE DORÉE aussi
   const multJour = bonusActif('coffres') ? 1.25 : 1;
-  const dores = Math.round((3 + niveau * 4) * MULT_RARETE[c.rarete] * state.stats.multCoffres * multJour);
+  const dores = Math.round(
+    (3 + niveau * 4) * MULT_RARETE[c.rarete] * state.stats.multCoffres * multJour * multDoresConsommables()
+  );
   crediterDore(dores, c.x, c.y);
   doresRamasses += dores;
   if (c.rarete !== 'commun' && Math.random() < 0.25) {
@@ -664,10 +695,11 @@ function mortMonstre(index: number, source: SourceCoup = 'sort'): void {
   }
 
   // butin : les élites lâchent un coffre, les autres des dorés
+  // (FRITURE DORÉE : ×1,3 pendant le buff — plan 18)
   if (m.elite) {
     coffres.push({ x: m.x, y: m.y, rarete: rareteCoffrePorte(porte?.niveau ?? 1), age: 0 });
   } else {
-    const dores = Math.max(1, Math.round(m.butin / 3));
+    const dores = Math.max(1, Math.round((m.butin / 3) * multDoresConsommables()));
     crediterDore(dores, m.x, m.y);
     doresRamasses += dores;
   }
@@ -1022,13 +1054,19 @@ function majEscouade(dt: number): void {
 // ----------------------------------------------------------- boucle
 
 export function majDonjon(dt: number): void {
-  // Régénération, partout (SANS REPRISE la coupe, en donjon seulement)
+  // Régénération, partout (SANS REPRISE la coupe, en donjon seulement ;
+  // les buffs de plats s'ajoutent — plan 18)
   if (!(enDonjon() && maudit('sans_reprise'))) {
-    pv = clamp(pv + state.stats.regen * dt, 0, enDonjon() ? pvMaxCourant() : state.stats.pvMax);
+    pv = clamp(
+      pv + (state.stats.regen + regenConsommables()) * dt,
+      0,
+      enDonjon() ? pvMaxCourant() : state.stats.pvMax
+    );
   }
   if (!enDonjon() || !porte) return;
   chrono += dt;
   tGrace = Math.max(0, tGrace - dt);
+  majConsommables(dt);
 
   grille.reconstruire(monstres);
 
@@ -1116,7 +1154,12 @@ export function majDonjon(dt: number): void {
       ajouterParticules(cible.x, cible.y, '#ffffff', 4);
       sons.coup();
       evenementDefi('coupMelee');
-      infligerAuMonstre(cible, Math.round(state.stats.degats * SWARM.coefMelee), '#ffd94a', 'melee');
+      infligerAuMonstre(
+        cible,
+        Math.round(state.stats.degats * SWARM.coefMelee * multDegatsConsommables()),
+        '#ffd94a',
+        'melee'
+      );
     }
   }
 

@@ -798,3 +798,49 @@ canvas#game-area {
 .dialogue-suite { text-align: right; font-size: 8px; color: #f2d16b; animation: pulse-suite 0.9s infinite; }
 @keyframes pulse-suite { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 .lettre-atelier { border: 1px solid #6b5a8a; padding: 12px; margin: 8px 0; background: rgba(58, 45, 71, 0.3); }
+
+/* ---- hotbar de consommables (plan 18) ---- */
+.hotbar {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 96px;
+  z-index: 30;
+  display: flex;
+  gap: 8px;
+}
+.hotbar-slot {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  background: rgba(20, 15, 28, 0.85);
+  border: 2px solid #6b5a8a;
+  cursor: pointer;
+  overflow: hidden;
+  padding: 0;
+}
+.hotbar-slot.hotbar-vide { opacity: 0.45; }
+.hotbar-icone { font-size: 22px; line-height: 34px; text-align: center; }
+.hotbar-n {
+  position: absolute;
+  right: 3px;
+  bottom: 2px;
+  font-size: 8px;
+  color: #e8e8f0;
+}
+.hotbar-touche {
+  position: absolute;
+  left: 3px;
+  top: 2px;
+  font-size: 8px;
+  color: #f2d16b;
+}
+.hotbar-cd {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 0%;
+  background: rgba(255, 255, 255, 0.28);
+  pointer-events: none;
+}

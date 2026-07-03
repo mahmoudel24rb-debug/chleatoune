@@ -88,6 +88,10 @@ function fusionner(brut: unknown): SaveData {
       ...(d.swarm ?? {}),
       termines: { ...(d.swarm?.termines ?? {}) },
       escouade: Array.isArray(d.swarm?.escouade) ? d.swarm.escouade : [],
+      hotbar:
+        Array.isArray(d.swarm?.hotbar) && d.swarm.hotbar.length === 3
+          ? d.swarm.hotbar
+          : [null, null, null],
     },
     parchemins: { ...(d.parchemins ?? {}) },
     sorts: { ...(d.sorts ?? {}) },
@@ -101,6 +105,12 @@ function fusionner(brut: unknown): SaveData {
     calendrier: { ...defauts.calendrier, ...(d.calendrier ?? {}) },
     drapeaux: { ...(d.drapeaux ?? {}) },
     filRouge: { ...defauts.filRouge, ...(d.filRouge ?? {}) },
+    inventaire: {
+      poissons: { ...(d.inventaire?.poissons ?? {}) },
+      plats: { ...(d.inventaire?.plats ?? {}) },
+    },
+    aquarium: { ...(d.aquarium ?? {}) },
+    venteAuto: d.venteAuto ?? 'jamais',
   };
   // Migration v1 → v2 : le bonus passif passe sur les plumes cumulées.
   if ((d.version ?? 1) < 2 && d.cumulPlumes === undefined) {

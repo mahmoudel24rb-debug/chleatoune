@@ -123,6 +123,13 @@ export const SWARM = {
   croissanceCoutSort: 1.45,
   coutEvolutionDores: 600, // le puits à smiski dorés du late-game
 
+  // ---- consommables (plan 18 §4)
+  consommables: {
+    cdGlobal: 8, // partagé par les 3 slots — LE garde-fou anti-goinfrage
+    porteeOndeChoc: 320, // l'onde de choc repousse les monstres à portée…
+    reculOndeChoc: 120, // …de ça (0 dégât : bouton panique, pas un sort)
+  },
+
   // ---- porte sans fin (anti-plafond)
   sansFin: {
     budget: 1.12, // budget de la vague v = B(12) × budget^v

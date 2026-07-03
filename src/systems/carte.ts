@@ -30,7 +30,7 @@ import { birb } from '../entities/birb';
 import { activerRepere, chasseActive, tirerFilSecret } from './chasses';
 import { parlerAuPnj, pnjAUneEtape, signalerActionFilRouge, etapeCourante } from './filrouge';
 import { ajouterParticules } from './fx';
-import { ouvrirAtelier, ouvrirCalendrier, ouvrirSphinge } from '../ui/overlays';
+import { ouvrirAtelier, ouvrirCalendrier, ouvrirCuisine, ouvrirSphinge } from '../ui/overlays';
 import { enregistrer } from './interactions';
 import { amenagerAntre, entrerAntre } from './antre';
 import { entrerPeche } from './peche';
@@ -217,8 +217,15 @@ export function amenagerCartes(): void {
         // `!` doré = étape du Fil Rouge · `…` gris = ambiance (plan 15 §3)
         etiquette: () => `${pnjAUneEtape(pnj.id) ? '❗ ' : '… '}${pnj.nom}`,
         pulse: () => pnjAUneEtape(pnj.id),
-        texte: () => `PARLER À ${pnj.nom}`,
-        action: () => parlerAuPnj(pnj.id, pnj.ambiance),
+        texte: () =>
+          pnj.id === 'brioche' && !pnjAUneEtape('brioche')
+            ? 'LA CUISINE DE BRIOCHE 🍳'
+            : `PARLER À ${pnj.nom}`,
+        action: () => {
+          // Brioche tient la cuisine (plan 18 §3) — le Fil Rouge d'abord
+          if (pnj.id === 'brioche' && !pnjAUneEtape('brioche')) ouvrirCuisine();
+          else parlerAuPnj(pnj.id, pnj.ambiance);
+        },
       },
     ]);
   }

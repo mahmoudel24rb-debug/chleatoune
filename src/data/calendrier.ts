@@ -30,9 +30,10 @@ export const BONUS_JOURS: BonusJour[] = [
   { jour: 0, nom: 'DIMANCHE DU MÉTIER', description: 'Le Métier tisse ×1,5 (hors-ligne)', effet: 'metier' },
 ];
 
-/** L'offrande du jour : une petite somme dans une monnaie tournante. */
+/** L'offrande du jour : une petite somme dans une monnaie tournante
+ *  ('poissons' = 2 poissons communs de la besace, plan 18 §6). */
 export interface OffrandeDef {
-  monnaie: MonnaieId | 'dore';
+  monnaie: MonnaieId | 'dore' | 'poissons';
   quantite: number;
 }
 
@@ -40,6 +41,7 @@ export const OFFRANDES: OffrandeDef[] = [
   { monnaie: 'popcorn', quantite: 200 },
   { monnaie: 'brindille', quantite: 20 },
   { monnaie: 'dore', quantite: 5 },
+  { monnaie: 'poissons', quantite: 2 },
 ];
 
 export const RECOMPENSE_OFFRANDE = 40; // en dorés

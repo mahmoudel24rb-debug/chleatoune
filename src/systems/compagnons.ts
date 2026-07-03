@@ -21,6 +21,7 @@ import { birb } from '../entities/birb';
 import type { Collectible } from '../entities/collectible';
 import { entitesZoneActive } from './spawner';
 import { crediter, crediterDore, encaisserCollectible } from './economy';
+import { multPatee } from './besace';
 
 export interface Compagnon {
   /** id d'espèce ('prairie', 'scene'…) ou 'yuumi' */
@@ -63,7 +64,7 @@ export function especesCombat(): CompagnonBiomeDef[] {
 }
 
 function vitesseEspece(espece: string): number {
-  return SWARM.compagnons.vitesse[espece] ?? SWARM.compagnons.vitesse.defaut;
+  return (SWARM.compagnons.vitesse[espece] ?? SWARM.compagnons.vitesse.defaut) * multPatee(espece);
 }
 
 // --------------------------------------------- ramasseurs (zone active)
@@ -159,12 +160,14 @@ function tickRecolteDistante(): void {
     if (state.save.rebirbs < (ZONES[def.zone].rebirbsRequis ?? 0)) continue;
     if (jeu.mode === 'monde' && def.zone === state.save.zone) continue;
 
+    // la PÂTÉE (plan 18 §6) booste la récolte du biome pendant 10 min
+    const patee = multPatee(def.id);
     if (def.monnaieAchat === 'dore') {
       const bonus = state.save.desert['d_moisson'] ? 2 : 1;
-      crediterDore(u * SWARM.compagnons.rendementDoreTick * bonus, 0, 0, true);
+      crediterDore(u * SWARM.compagnons.rendementDoreTick * bonus * patee, 0, 0, true);
     } else {
       const monnaie = ZONES[def.zone].monnaie;
-      const gain = u * SWARM.compagnons.rendementTick * state.stats.monnaies[monnaie].valeur;
+      const gain = u * SWARM.compagnons.rendementTick * state.stats.monnaies[monnaie].valeur * patee;
       crediter(monnaie, gain, 0, 0, true);
     }
   }

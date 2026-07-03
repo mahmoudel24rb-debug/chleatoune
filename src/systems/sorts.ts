@@ -20,6 +20,7 @@ import { birb, centreBirb } from '../entities/birb';
 import type { Monstre } from '../entities/monstre';
 import { tirerProjectile } from '../entities/projectile';
 import { grilleMonstres, infligerAuMonstre } from './donjon';
+import { multDegatsConsommables } from './consommables';
 import { ajouterParticules } from './fx';
 import { getCoffres } from './donjon';
 
@@ -85,12 +86,19 @@ export function evolue(id: string): boolean {
   return state.save.evolutions[id] === true;
 }
 
-/** Dégâts d'un tick du sort (coef × D × niveaux, ×1,35 si évolué). */
+/** Dégâts d'un tick du sort (coef × D × niveaux, ×1,35 si évolué,
+ *  × buff de plat éventuel — plan 18). */
 function degatsSort(def: SortDef): number {
   const evolutionMult = evolue(def.id) ? 1.35 : 1;
   return Math.max(
     1,
-    Math.round(def.coef * state.stats.degats * multNiveauSort(def, niveauSort(def.id)) * evolutionMult)
+    Math.round(
+      def.coef *
+        state.stats.degats *
+        multNiveauSort(def, niveauSort(def.id)) *
+        evolutionMult *
+        multDegatsConsommables()
+    )
   );
 }
 

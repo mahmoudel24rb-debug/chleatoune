@@ -5,6 +5,7 @@
 import { BONUS_JOURS, OFFRANDES, RECOMPENSE_OFFRANDE, type BonusJour } from '../data/calendrier';
 import { state } from '../core/state';
 import { crediterDore } from './economy';
+import { retirerCommuns } from './besace';
 import { sons } from './audio';
 import { sauvegarder } from './save';
 import { ajouterToast } from '../ui/toasts';
@@ -39,6 +40,8 @@ export function faireOffrande(): boolean {
   if (offrande.monnaie === 'dore') {
     if (state.save.soldeDore < offrande.quantite) return false;
     state.save.soldeDore -= offrande.quantite;
+  } else if (offrande.monnaie === 'poissons') {
+    if (!retirerCommuns(offrande.quantite)) return false;
   } else {
     if (state.save.soldes[offrande.monnaie] < offrande.quantite) return false;
     state.save.soldes[offrande.monnaie] -= offrande.quantite;

@@ -14,6 +14,21 @@ import { setMaledictionsPorte } from '../systems/donjon';
 import { progressionSucces } from '../systems/succes';
 import { acheterChasse, chasseActive, indiceFilSecret } from '../systems/chasses';
 import { signalerActionFilRouge } from '../systems/filrouge';
+import { PLATS, platDef } from '../data/cuisine';
+import {
+  cuisiner,
+  donnerAquarium,
+  donnerPatee,
+  nbDonsAquarium,
+  peutCuisiner,
+  recyclerEnAppat,
+  stock,
+  totalToutVendre,
+  toutVendre,
+  valeurPoisson,
+  vendrePoissons,
+  vendreShiny,
+} from '../systems/besace';
 import { bonusDuJour, faireOffrande, offrandeDisponible, offrandeDuJour } from '../systems/calendrier';
 import { NIVEAU_MAX_SORT, SORTS, multNiveauSort, type SortDef } from '../data/sorts';
 import { SWARM, coutNiveauSort, coutParchemin } from '../data/swarm';
@@ -390,6 +405,39 @@ export function ouvrirConfirmationPorte(
     }
   }
 
+  // la hotbar de consommables (plan 18 §4) : 3 slots, touches 1/2/3
+  modal.appendChild(el('div', 'ligne-modal', '— HOTBAR (TOUCHES 1/2/3, COOLDOWN PARTAGÉ 8 S) —'));
+  for (let slot = 0; slot < 3; slot++) {
+    const ligne = el('div', 'ligne-modal ligne-escouade');
+    const choix = el('select', 'dev-champ') as HTMLSelectElement;
+    const optVide = el('option', '', '— vide —') as HTMLOptionElement;
+    optVide.value = '';
+    choix.appendChild(optVide);
+    for (const plat of PLATS) {
+      if (plat.id === 'patee') continue; // la pâtée se donne aux panneaux
+      const n = state.save.inventaire.plats[plat.id] ?? 0;
+      if (n <= 0) continue;
+      const opt = el('option', '', `${plat.icone} ${plat.nom} ×${n}`) as HTMLOptionElement;
+      opt.value = plat.id;
+      choix.appendChild(opt);
+    }
+    for (const p of POISSONS) {
+      const n = stock(p.id).n;
+      if (n <= 0) continue;
+      const opt = el('option', '', `🐟 ${p.nom} (cru) ×${n}`) as HTMLOptionElement;
+      opt.value = `poisson:${p.id}`;
+      choix.appendChild(opt);
+    }
+    choix.value = state.save.swarm.hotbar[slot] ?? '';
+    if (choix.value !== (state.save.swarm.hotbar[slot] ?? '')) choix.value = '';
+    choix.addEventListener('change', () => {
+      state.save.swarm.hotbar[slot] = choix.value || null;
+      sauvegarder();
+    });
+    ligne.append(el('span', '', `[${slot + 1}] `), choix);
+    modal.appendChild(ligne);
+  }
+
   const btnEntrer = el('button', 'btn btn-modal affordable', 'ENTRER ⚔');
   btnEntrer.addEventListener('click', () => {
     fermerModal();
@@ -572,6 +620,27 @@ export function ouvrirBoutiquePeche(): void {
     cartePecheur.appendChild(el('div', 'carte-desc', 'LE PONTON EST AU COMPLET !'));
   }
   modal.appendChild(cartePecheur);
+
+  // recyclage (plan 18 §6) : la pêche s'auto-alimente
+  modal.appendChild(el('div', 'ligne-modal', '— RECYCLAGE —'));
+  const carteRecycle = el('div', 'carte');
+  carteRecycle.appendChild(
+    el('div', 'carte-desc', '3 poissons communs de la besace → 1 MIETTES DE BRIOCHE (appât).')
+  );
+  const btnRecycle = el('button', 'btn btn-achat', 'RECYCLER 3 COMMUNS');
+  btnRecycle.addEventListener('click', () => {
+    if (recyclerEnAppat()) ouvrirBoutiquePeche();
+    else {
+      sons.refus();
+      ajouterToast('IL FAUT 3 POISSONS COMMUNS DANS LA BESACE.');
+    }
+  });
+  carteRecycle.appendChild(btnRecycle);
+  modal.appendChild(carteRecycle);
+
+  const versBesaceB = el('button', 'btn btn-modal', '🎒 VENDRE / BESACE (I)');
+  versBesaceB.addEventListener('click', ouvrirBesace);
+  modal.appendChild(versBesaceB);
 
   const fermer = el('button', 'btn btn-modal', 'FERMER (B)');
   fermer.addEventListener('click', fermerModal);
@@ -931,6 +1000,19 @@ export function ouvrirAdoption(def: CompagnonBiomeDef): void {
   );
   modal.appendChild(el('div', 'ligne-modal', `RÔLE À 4/4 : ${def.combat.descRole}`));
 
+  // la pâtée du chat (plan 18 §6) : le pont pêche ↔ compagnons
+  if ((state.save.inventaire.plats['patee'] ?? 0) > 0 && u > 0) {
+    const btnPatee = el(
+      'button',
+      'btn btn-achat affordable',
+      `🥫 DONNER UNE PÂTÉE (×${state.save.inventaire.plats['patee']}) — récolte +30 % / 10 min`
+    );
+    btnPatee.addEventListener('click', () => {
+      if (donnerPatee(def.id)) ouvrirAdoption(def);
+    });
+    modal.appendChild(btnPatee);
+  }
+
   if (u >= UNITES_MAX) {
     modal.appendChild(el('div', 'ligne-modal', '★ COPIE DE COMBAT DÉBLOQUÉE — choisis ton escouade sur une porte de l’Antre !'));
   } else {
@@ -966,6 +1048,280 @@ export function ouvrirAdoption(def: CompagnonBiomeDef): void {
     modal.appendChild(btn);
   }
 
+  const fermer = el('button', 'btn btn-modal', 'FERMER');
+  fermer.addEventListener('click', fermerModal);
+  modal.appendChild(fermer);
+}
+
+// ----------------- la Besace, la Cuisine & le Grand Aquarium (plan 18)
+
+function ligneCasePoisson(p: (typeof POISSONS)[number], refresh: () => void): HTMLElement | null {
+  const s = stock(p.id);
+  if (s.n <= 0 && s.shiny <= 0) return null;
+  const carte = el('div', 'carte');
+  const haut = el('div', 'carte-haut');
+  const icone = iconePoisson(p.id, true);
+  const nomEl = el('span', 'carte-nom', ` ${p.nom} ×${s.n}${s.shiny > 0 ? ` (+${s.shiny} ✨)` : ''}`);
+  nomEl.style.color = RARETES[p.rarete].couleur;
+  haut.append(icone, nomEl, el('span', 'carte-niveau', `${formatNombre(valeurPoisson(p.id, false), 0)} ${THEME.monnaies.popcorn.nom}/u`));
+  carte.appendChild(haut);
+  const actions = el('div', 'carte-achats');
+  if (s.n > 0) {
+    const btn1 = el('button', 'btn btn-achat', 'VENDRE 1');
+    btn1.addEventListener('click', () => {
+      vendrePoissons(p.id, 1, false);
+      sons.achat();
+      sauvegarder();
+      refresh();
+    });
+    const btnTout = el('button', 'btn btn-achat', `VENDRE ×${s.n}`);
+    btnTout.addEventListener('click', () => {
+      vendrePoissons(p.id, s.n, false);
+      sons.achat();
+      sauvegarder();
+      refresh();
+    });
+    const btnHotbar = el('button', 'btn btn-max', 'HOTBAR');
+    btnHotbar.addEventListener('click', () => {
+      const hotbar = state.save.swarm.hotbar;
+      const slot = hotbar.indexOf(null);
+      if (slot === -1) {
+        ajouterToast('HOTBAR PLEINE — RÉASSIGNE DEPUIS UNE PORTE.');
+        return;
+      }
+      hotbar[slot] = `poisson:${p.id}`;
+      sons.achat();
+      ajouterToast(`🐟 ${p.nom} → SLOT ${slot + 1} (à croquer en donjon)`);
+      sauvegarder();
+    });
+    actions.append(btn1, btnTout, btnHotbar);
+  }
+  if (s.shiny > 0) {
+    // les shiny se vendent SÉPARÉMENT : jamais bradés par mégarde
+    const btnShiny = el('button', 'btn btn-achat', `VENDRE ✨ (${formatNombre(valeurPoisson(p.id, true), 0)})`);
+    btnShiny.addEventListener('click', () => {
+      vendreShiny(p.id, 1);
+      sons.achat();
+      sauvegarder();
+      refresh();
+    });
+    actions.appendChild(btnShiny);
+  }
+  carte.appendChild(actions);
+  return carte;
+}
+
+let confirmationVente = false;
+
+export function ouvrirBesace(): void {
+  ouvrir();
+  confirmationVente = false;
+  modal.appendChild(el('h2', '', '🎒 LA BESACE'));
+  modal.appendChild(
+    el('div', 'ligne-modal', `${THEME.monnaies.popcorn.nom} : ${formatNombre(state.save.soldes.popcorn, 0)}`)
+  );
+
+  // vente auto (option de confort, plan 18 §2)
+  const ligneAuto = el('div', 'ligne-modal');
+  const choixAuto = el('select', 'dev-champ') as HTMLSelectElement;
+  for (const [valeur, texte] of [
+    ['jamais', 'JAMAIS'],
+    ['communs', 'LES COMMUNS'],
+    ['exposes', 'LES DOUBLONS DÉJÀ EXPOSÉS (5+)'],
+  ] as const) {
+    const opt = el('option', '', texte) as HTMLOptionElement;
+    opt.value = valeur;
+    choixAuto.appendChild(opt);
+  }
+  choixAuto.value = state.save.venteAuto;
+  choixAuto.addEventListener('change', () => {
+    state.save.venteAuto = choixAuto.value as typeof state.save.venteAuto;
+    sons.achat();
+    sauvegarder();
+  });
+  ligneAuto.append(el('span', '', 'VENTE AUTO : '), choixAuto);
+  modal.appendChild(ligneAuto);
+  modal.appendChild(el('div', 'ligne-modal', '(la vente auto ne touche JAMAIS un shiny)'));
+
+  let vide = true;
+  for (const p of POISSONS) {
+    const carte = ligneCasePoisson(p, ouvrirBesace);
+    if (carte) {
+      vide = false;
+      modal.appendChild(carte);
+    }
+  }
+  if (vide) modal.appendChild(el('p', 'rebirb-explication', 'La besace est vide. Le ponton t’attend. 🎣'));
+
+  // TOUT VENDRE : total affiché AVANT confirmation, shiny exclus
+  const total = totalToutVendre();
+  if (total > 0) {
+    const btnTout = el('button', 'btn btn-modal btn-danger', `TOUT VENDRE (+${formatNombre(total, 0)} ${THEME.monnaies.popcorn.nom} — les ✨ restent)`);
+    btnTout.addEventListener('click', () => {
+      if (!confirmationVente) {
+        confirmationVente = true;
+        btnTout.textContent = `SÛRE ? +${formatNombre(total, 0)} ${THEME.monnaies.popcorn.nom} — CLIQUE ENCORE`;
+        return;
+      }
+      toutVendre();
+      ouvrirBesace();
+    });
+    modal.appendChild(btnTout);
+  }
+
+  // les plats cuisinés
+  const plats = Object.entries(state.save.inventaire.plats).filter(([, n]) => n > 0);
+  if (plats.length > 0) {
+    modal.appendChild(el('div', 'ligne-modal', '— PLATS —'));
+    for (const [id, n] of plats) {
+      const plat = platDef(id);
+      if (!plat) continue;
+      const carte = el('div', 'carte');
+      const haut = el('div', 'carte-haut');
+      haut.append(el('span', 'carte-nom', `${plat.icone} ${plat.nom} ×${n}`));
+      carte.appendChild(haut);
+      carte.appendChild(el('div', 'carte-desc', plat.description));
+      if (id !== 'patee') {
+        const btn = el('button', 'btn btn-max', 'HOTBAR');
+        btn.addEventListener('click', () => {
+          const hotbar = state.save.swarm.hotbar;
+          const slot = hotbar.indexOf(null);
+          if (slot === -1) {
+            ajouterToast('HOTBAR PLEINE — RÉASSIGNE DEPUIS UNE PORTE.');
+            return;
+          }
+          hotbar[slot] = id;
+          sons.achat();
+          ajouterToast(`${plat.icone} ${plat.nom} → SLOT ${slot + 1}`);
+          sauvegarder();
+        });
+        carte.appendChild(btn);
+      }
+      modal.appendChild(carte);
+    }
+  }
+
+  const versCuisine = el('button', 'btn btn-modal', '🍳 LA CUISINE DE BRIOCHE →');
+  versCuisine.addEventListener('click', ouvrirCuisine);
+  modal.appendChild(versCuisine);
+  const fermer = el('button', 'btn btn-modal', 'FERMER (I)');
+  fermer.addEventListener('click', fermerModal);
+  modal.appendChild(fermer);
+}
+
+export function basculerBesace(): void {
+  if (modalOuvert()) fermerModal();
+  else ouvrirBesace();
+}
+
+function texteIngredients(ing: { communs?: number; rares?: number; espece?: string; shiny?: number; brindilles?: number }): string {
+  const morceaux: string[] = [];
+  if (ing.communs) morceaux.push(`${ing.communs} commun${ing.communs > 1 ? 's' : ''}`);
+  if (ing.rares) morceaux.push(`${ing.rares} rare${ing.rares > 1 ? 's' : ''}`);
+  if (ing.espece) morceaux.push(`1 ${POISSONS.find((p) => p.id === ing.espece)?.nom ?? ing.espece}`);
+  if (ing.shiny) morceaux.push(`${ing.shiny} SHINY ✨ (au choix)`);
+  if (ing.brindilles) morceaux.push(`${ing.brindilles} brindilles`);
+  return morceaux.join(' + ');
+}
+
+export function ouvrirCuisine(): void {
+  ouvrir();
+  modal.appendChild(el('h2', '', '🍳 LA CUISINE DE BRIOCHE'));
+  modal.appendChild(
+    el('p', 'rebirb-explication', '« ON NE RECOUD RIEN LE VENTRE VIDE. » Les recettes se débloquent avec le Mikudex.')
+  );
+  const decouvertes = progressionDex().decouvertes;
+  for (const plat of PLATS) {
+    const carte = el('div', 'carte');
+    const haut = el('div', 'carte-haut');
+    const verrouille = decouvertes < plat.deblocageDex;
+    haut.append(
+      el('span', 'carte-nom', verrouille ? '🔒 ? ? ?' : `${plat.icone} ${plat.nom}`),
+      el('span', 'carte-niveau', verrouille ? `MIKUDEX ${plat.deblocageDex}/16` : `×${state.save.inventaire.plats[plat.id] ?? 0}`)
+    );
+    carte.appendChild(haut);
+    if (verrouille) {
+      modal.appendChild(carte);
+      continue;
+    }
+    carte.appendChild(el('div', 'carte-desc', plat.description));
+    carte.appendChild(el('div', 'carte-desc carte-verrou', plat.commentaire));
+    const faisable = peutCuisiner(plat.ingredients);
+    const btn = el('button', 'btn btn-achat', `CUISINER : ${texteIngredients(plat.ingredients)}`);
+    btn.disabled = !faisable;
+    btn.classList.toggle('affordable', faisable);
+    btn.addEventListener('click', () => {
+      if (plat.ingredients.shiny) {
+        // sacrifier un shiny mérite une double confirmation
+        if (!btn.dataset.arme) {
+          btn.dataset.arme = '1';
+          btn.textContent = 'UN SHINY VA Y PASSER — CLIQUE ENCORE';
+          return;
+        }
+      }
+      if (cuisiner(plat.id)) ouvrirCuisine();
+    });
+    carte.appendChild(btn);
+    modal.appendChild(carte);
+  }
+  const versBesace = el('button', 'btn btn-modal', '← LA BESACE');
+  versBesace.addEventListener('click', ouvrirBesace);
+  modal.appendChild(versBesace);
+  const fermer = el('button', 'btn btn-modal', 'FERMER');
+  fermer.addEventListener('click', fermerModal);
+  modal.appendChild(fermer);
+}
+
+export function ouvrirAquarium(): void {
+  ouvrir();
+  const dons = nbDonsAquarium();
+  modal.appendChild(el('h2', '', `🏛 LE GRAND AQUARIUM — ${dons}/${POISSONS.length}`));
+  modal.appendChild(
+    el(
+      'p',
+      'rebirb-explication',
+      'Donner un spécimen le CONSOMME — pour toujours, pour la gloire. La plaque garde ton record de taille. +2 plumes tous les 4 dons.'
+    )
+  );
+  for (const p of POISSONS) {
+    const expose = state.save.aquarium[p.id];
+    const s = stock(p.id);
+    const ligne = el('div', 'ligne-dex');
+    ligne.appendChild(iconePoisson(p.id, !!expose));
+    const infos = el('div', 'dex-infos');
+    const nom = el('div', 'dex-nom', expose ? `${expose.shiny ? '✨ ' : ''}${p.nom}` : '— BASSIN VIDE —');
+    nom.style.color = expose ? RARETES[p.rarete].couleur : '#8a8a96';
+    infos.appendChild(nom);
+    const record = state.save.peche.dex[p.id]?.tailleRecord ?? 0;
+    infos.appendChild(
+      el('div', 'dex-detail', expose ? `PLAQUE : ${record > 0 ? `record ${record} cm` : 'sans mesure'}` : p.nom in state.save.peche.dex ? p.nom : '? ? ?')
+    );
+    ligne.appendChild(infos);
+    const actions = el('div', 'carte-achats');
+    if (!expose && s.n > 0) {
+      const btn = el('button', 'btn btn-achat affordable', 'DONNER (consomme 1)');
+      btn.addEventListener('click', () => {
+        donnerAquarium(p.id, false);
+        ouvrirAquarium();
+      });
+      actions.appendChild(btn);
+    }
+    if (s.shiny > 0 && (!expose || !expose.shiny)) {
+      const btn = el('button', 'btn btn-achat', expose ? 'REMPLACER PAR UN ✨' : 'DONNER UN ✨');
+      btn.addEventListener('click', () => {
+        if (!btn.dataset.arme) {
+          btn.dataset.arme = '1';
+          btn.textContent = 'UN SHINY, POUR TOUJOURS ? CLIQUE ENCORE';
+          return;
+        }
+        donnerAquarium(p.id, true);
+        ouvrirAquarium();
+      });
+      actions.appendChild(btn);
+    }
+    ligne.appendChild(actions);
+    modal.appendChild(ligne);
+  }
   const fermer = el('button', 'btn btn-modal', 'FERMER');
   fermer.addEventListener('click', fermerModal);
   modal.appendChild(fermer);
@@ -1084,7 +1440,12 @@ export function ouvrirCalendrier(): void {
     modal.appendChild(el('div', 'ligne-modal', `SÉRIE D'OFFRANDES : ${state.save.calendrier.serie} 🕯`));
   }
   const offrande = offrandeDuJour();
-  const nomMonnaie = offrande.monnaie === 'dore' ? THEME.dore.pluriel : THEME.monnaies[offrande.monnaie].nom;
+  const nomMonnaie =
+    offrande.monnaie === 'dore'
+      ? THEME.dore.pluriel
+      : offrande.monnaie === 'poissons'
+        ? 'POISSONS COMMUNS (besace)'
+        : THEME.monnaies[offrande.monnaie].nom;
   if (offrandeDisponible()) {
     const btn = el(
       'button',
