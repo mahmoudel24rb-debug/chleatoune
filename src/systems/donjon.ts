@@ -74,7 +74,7 @@ import { sauvegarder } from './save';
 import { ajouterToast } from '../ui/toasts';
 import { ouvrirFinDonjon } from '../ui/overlays';
 import { entrerAntre } from './antre';
-import { appliquerPreparationsDonjon } from './matieres';
+import { appliquerPreparationsDonjon, consommerPreparationsDonjon } from './matieres';
 
 export type RareteCoffre = 'commun' | 'rare' | 'epique' | 'legendaire';
 export type PhaseDonjon = 'combat' | 'pause' | 'boss' | 'victoire';
@@ -476,6 +476,7 @@ export function entrerDonjon(p: PorteDef): void {
 }
 
 export function sortirDonjon(): void {
+  consommerPreparationsDonjon(); // K.O. et sortie volontaire (idempotent)
   monstres.length = 0;
   coffres.length = 0;
   fileAttente = [];
@@ -595,6 +596,7 @@ function victoire(): void {
 
   state.save.swarm.termines[porte.niveau] = (state.save.swarm.termines[porte.niveau] ?? 0) + 1;
   signalerDonjonTermine();
+  consommerPreparationsDonjon(); // le run est conclu : la forge a servi
 
   if (premiere) {
     state.save.swarm.porteMax = Math.max(state.save.swarm.porteMax, porte.niveau + 1);

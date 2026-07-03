@@ -68,12 +68,13 @@ birb-like/
 │   │            boss, portes, parchemins, sorts, compagnons-biomes, defis,
 │   │            maledictions, archimonstres, succes, secrets, chasses, calendrier,
 │   │            pnj, dialogues, filrouge, poissons, poissons-sprites, peche-config,
-│   │            peche-boutique, cuisine, upgrades, talents, desert, progression, skins
+│   │            peche-boutique, cuisine, upgrades, talents, desert, progression,
+│   │            skins, matieres (Atelier des matières)
 │   ├── entities/ birb, monstre, collectible, projectile (pool)
 │   ├── systems/ spawner, economy, donjon, antre, sorts, defis, compagnons,
 │   │            telegraphes, peche, besace, consommables, succes, chasses,
 │   │            calendrier, filrouge, quetes, nid, carte (aménagement des zones),
-│   │            interactions, rebirb, save, profils, cloud, fx, audio
+│   │            interactions, rebirb, save, profils, cloud, fx, audio, matieres
 │   ├── ui/      hud, panel, overlays (TOUS les modals), dialogue, toasts,
 │   │            creation (écran QUI JOUE ?), dev (mode dev F1)
 │   └── main.ts  câblage + update/render + poignée de test window.__jeu
@@ -92,8 +93,16 @@ birb-like/
   accessible). Ramassage de collectibles → `systems/economy.ts` (`crediter`,
   multiplicateurs plumes × sacrifices/étoile), boutique data-driven
   (`data/upgrades.ts`), talents en plumes, quêtes du désert, arbre géant
-  (« LE MÉTIER ») = gains hors-ligne (plafonné 12 h).
-- **antre** (« L'ENVERS ») : hub aux 13 portes + le Mercier + trophées.
+  (« LE MÉTIER ») = gains hors-ligne (plafonné 12 h, SANS les compagnons
+  — eux ne récoltent que jeu ouvert).
+- **antre** (« L'ENVERS ») : hub aux 13 portes + le Mercier + trophées +
+  l'**Atelier des matières** (`data/matieres.ts` + `systems/matieres.ts`) :
+  sinks de surplus Miku/brindilles/minerai — 2 bonus temporaires 10 min
+  (CONCERT = récolte compagnons ×1,25, PROJECTEURS = rayon AUTO ×1,4),
+  2 préparations de porte (PV/respawn des copies, consommées à la FIN du
+  run — pas à l'entrée, un reload ne les perd pas), socles cosmétiques ◆.
+  Un bonus actif ne se relance pas. Aucun effet sur les dégâts de
+  l'héroïne (cloisonnement éco/combat).
 - **donjon** : combat à vagues (voir §5).
 - **peche** : minijeu façon Animal Crossing (voir §7).
 
@@ -235,6 +244,7 @@ telegraphes,projectiles,escouade,degats}`, `rebirb`, `debug.archiChance`).
 | `test_plans10-13.py` | Mercier, parchemins/sorts, tireurs/télégraphes, boss, escouade, récolte à distance, adoption, recouture |
 | `test_v3v4.py` | succès, fil rouge ch. 1, calendrier, fil secret, besace/cuisine/vente, malédictions ×1,50 exact, archi forcé, hotbar, aquarium, recouture |
 | `test_dev.py` | mode dev F1 (mot de passe, crédits) |
+| `test_matieres.py` | Atelier des matières : achats, buff non relançable, rayon AUTO, préparations qui survivent au reload et consommées à la victoire |
 | `chrono_jalon.py <save> <x> <y> <nom>` | chronos d'équilibrage (pilote qui kite) |
 
 Règle : **les 3 premières suites doivent être vertes avant tout push.**

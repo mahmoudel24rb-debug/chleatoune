@@ -51,3 +51,34 @@ vague normale **15–35 s** · boss **45–90 s** · porte complète **4–8 min
   encore automatisé — à faire à la main au prochain jalon.
 - Étoile de cristal : `multGlobal` ne touche que `crediter*` (économie),
   jamais `state.stats.degats` — vérifié par lecture de code, TTK inchangé.
+
+## 2026-07-03 — session Codex (hors-ligne, respawn, Atelier des matières)
+
+Constantes changées (commits `589352c` + `5aa8836`, corrections Claude
+ensuite) :
+
+1. **Gains hors-ligne sans compagnons** (`systems/nid.ts`) : la formule
+   passe de `nid × (1 + unités) × 3/min` à `nid × 3/min`. Avec 4
+   compagnons de prairie c'était un ×5 silencieux — GROS nerf effectif
+   du hors-ligne, demandé (les compagnons ne travaillent que jeu
+   ouvert). **À surveiller au prochain retour de session de la
+   joueuse** : si le message des gains paraît trop maigre, remonter le
+   `× 3` de base plutôt que de réintroduire les unités.
+2. **Respawn des copies de combat** (`SWARM.compagnons`) :
+   base 30 → **45 s**, +0,5 → **+0,75 s/niveau**, plafond 120 → **150 s**
+   (30 s jugées trop clémentes en jeu réel). Les constantes vivaient en
+   dur dans `systems/compagnons.ts`, désormais dans `data/swarm.ts`.
+3. **Atelier des matières** (`data/matieres.ts`) — sinks de surplus,
+   AUCUN effet sur les dégâts de l'héroïne (les 4 effets ne touchent
+   que les compagnons et le rayon AUTO — le cloisonnement éco/combat
+   tient) :
+   - CONCERT DE MIKU : 2 500 Miku → récolte compagnons ×1,25, 10 min ;
+   - PROJECTEURS : 1 800 Miku + 300 brindilles → rayon AUTO ×1,4, 10 min ;
+   - BOUCLES DE RENFORT : 900 minerai → PV copies ×1,15, une porte ;
+   - KIT DE COUTURE : 700 minerai + 700 Miku → respawn copies ×0,8, une porte ;
+   - SOCLE : 120×n Miku + 90×n minerai, 100 % cosmétique.
+   Garde-fous de clémence ajoutés après revue : un bonus actif ne se
+   relance pas (pas de rachat pour rien), et les préparations sont
+   consommées à la FIN du run (victoire/K.O./sortie), pas à l'entrée —
+   un rechargement en plein donjon ne les perd plus.
+   Suite E2E dédiée : `tests-e2e/test_matieres.py`.

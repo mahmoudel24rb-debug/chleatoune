@@ -31,17 +31,30 @@ export function multRespawnCompagnonsDonjon(): number {
   return effetsDonjon.kit ? 1 - BONUS_MATIERES.kitRespawnCompagnons : 1;
 }
 
+/** À l'entrée d'une porte : arme les effets SANS consommer la préparation.
+ *  La consommation n'a lieu qu'à la conclusion du run (victoire, K.O.,
+ *  sortie volontaire) — un rechargement en plein donjon ramène à l'Envers
+ *  sans rien perdre (règle de clémence). */
 export function appliquerPreparationsDonjon(): void {
   effetsDonjon.renfort = state.save.matieres.preparations.renfort === true;
   effetsDonjon.kit = state.save.matieres.preparations.kit === true;
   if (!effetsDonjon.renfort && !effetsDonjon.kit) return;
-  state.save.matieres.preparations.renfort = false;
-  state.save.matieres.preparations.kit = false;
   const effets = [
     effetsDonjon.renfort ? 'PV COMPAGNONS +15 %' : '',
     effetsDonjon.kit ? 'RESPAWN COMPAGNONS -20 %' : '',
   ].filter(Boolean);
   ajouterToast(`PRÉPARATION DE FORGE : ${effets.join(' · ')}`);
+}
+
+/** À la fin d'un run (victoire, K.O. ou sortie) : consomme les
+ *  préparations réellement utilisées. Idempotente — appelée à la fois
+ *  par la victoire et par sortirDonjon(), sans double effet. */
+export function consommerPreparationsDonjon(): void {
+  if (!effetsDonjon.renfort && !effetsDonjon.kit) return;
+  if (effetsDonjon.renfort) state.save.matieres.preparations.renfort = false;
+  if (effetsDonjon.kit) state.save.matieres.preparations.kit = false;
+  effetsDonjon.renfort = false;
+  effetsDonjon.kit = false;
   sauvegarder();
 }
 
@@ -79,8 +92,10 @@ function payerCout(cout: CoutMatieres): boolean {
 
 export function acheterBuffMatiere(id: BuffMatiereId): boolean {
   const def = BUFFS_MATIERES.find((b) => b.id === id);
-  if (!def || !payerCout(def.cout)) return false;
-  state.save.matieres.buffs[id] = Math.max(tempsBuffMatiere(id), def.dureeSec);
+  // un bonus déjà actif ne se relance pas : on ne laisse pas payer
+  // plein tarif pour quelques secondes (règle de clémence)
+  if (!def || buffMatiereActif(id) || !payerCout(def.cout)) return false;
+  state.save.matieres.buffs[id] = def.dureeSec;
   sons.rebirb();
   ajouterToast(`${def.nom} LANCÉ !`);
   recalculerStats();
@@ -99,6 +114,9 @@ export function acheterPreparationMatiere(id: PreparationMatiereId): boolean {
 }
 
 export function reparerSoclePorte(niveau: number, cout: CoutMatieres): boolean {
+  // seule une porte déjà terminée mérite son socle (l'UI filtre déjà,
+  // ceinture et bretelles ici)
+  if ((state.save.swarm.termines[niveau] ?? 0) === 0) return false;
   if (state.save.matieres.portesReparees.includes(niveau) || !payerCout(cout)) return false;
   state.save.matieres.portesReparees.push(niveau);
   state.save.matieres.portesReparees.sort((a, b) => a - b);

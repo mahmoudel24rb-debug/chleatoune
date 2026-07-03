@@ -33,7 +33,7 @@ import {
 import { bonusDuJour, faireOffrande, offrandeDisponible, offrandeDuJour } from '../systems/calendrier';
 import { NIVEAU_MAX_SORT, SORTS, multNiveauSort, type SortDef } from '../data/sorts';
 import { SWARM, coutNiveauSort, coutParchemin } from '../data/swarm';
-import { BUFFS_MATIERES, PREPARATIONS_MATIERES, coutReparationPorte } from '../data/matieres';
+import { BUFFS_MATIERES, PREPARATIONS_MATIERES, coutReparationPorte, type BuffMatiereId } from '../data/matieres';
 import { PORTES } from '../data/portes';
 import {
   COMPAGNONS_BIOMES,
@@ -1028,20 +1028,48 @@ export function ouvrirAtelierMatieres(): void {
   modal.appendChild(ligneSoldesMatieres());
 
   modal.appendChild(el('div', 'ligne-modal', '— SCÈNE : BONUS TEMPORAIRES —'));
+  const titresBuffs: { id: BuffMatiereId; nom: string; elem: HTMLElement }[] = [];
   for (const def of BUFFS_MATIERES) {
     const carte = el('div', 'carte');
     const actif = tempsBuffMatiere(def.id);
-    carte.appendChild(el('div', 'carte-nom', `${def.nom}${actif > 0 ? ` — ${formatDuree(actif)}` : ''}`));
+    const titre = el('div', 'carte-nom', `${def.nom}${actif > 0 ? ` — ${formatDuree(actif)}` : ''}`);
+    titresBuffs.push({ id: def.id, nom: def.nom, elem: titre });
+    carte.appendChild(titre);
     carte.appendChild(el('div', 'carte-desc', def.desc));
-    const btn = el('button', 'btn btn-achat', `LANCER : ${texteCout(def.cout)}`);
-    btn.disabled = !peutPayerCout(def.cout);
-    btn.classList.toggle('affordable', peutPayerCout(def.cout));
+    // un bonus actif ne se relance pas (clémence : pas de rachat pour rien)
+    const btn = el(
+      'button',
+      'btn btn-achat',
+      actif > 0 ? `EN COURS — ${formatDuree(actif)}` : `LANCER : ${texteCout(def.cout)}`
+    );
+    btn.disabled = actif > 0 || !peutPayerCout(def.cout);
+    btn.classList.toggle('affordable', actif <= 0 && peutPayerCout(def.cout));
     btn.addEventListener('click', () => {
       if (acheterBuffMatiere(def.id)) ouvrirAtelierMatieres();
     });
     carte.appendChild(btn);
     modal.appendChild(carte);
   }
+  // compte à rebours vivant : se coupe seul quand le modal est fermé ou
+  // re-rendu ; quand un bonus expire, on re-rend pour rouvrir le bouton
+  const etatActifs = () => BUFFS_MATIERES.map((d) => tempsBuffMatiere(d.id) > 0).join(',');
+  const actifsAuRendu = etatActifs();
+  const minuterie = window.setInterval(() => {
+    const ancre = titresBuffs[0]?.elem;
+    if (!ancre || !ancre.isConnected) {
+      window.clearInterval(minuterie);
+      return;
+    }
+    if (etatActifs() !== actifsAuRendu) {
+      window.clearInterval(minuterie);
+      ouvrirAtelierMatieres();
+      return;
+    }
+    for (const t of titresBuffs) {
+      const restant = tempsBuffMatiere(t.id);
+      t.elem.textContent = `${t.nom}${restant > 0 ? ` — ${formatDuree(restant)}` : ''}`;
+    }
+  }, 500);
 
   modal.appendChild(el('div', 'ligne-modal', '— FORGE : PROCHAINE PORTE —'));
   for (const def of PREPARATIONS_MATIERES) {
@@ -1079,7 +1107,8 @@ export function ouvrirAtelierMatieres(): void {
   }
 
   const reparees = state.save.matieres.portesReparees.length;
-  modal.appendChild(el('div', 'ligne-modal', `SOCLES RECOUSUS : ${reparees}/12`));
+  const totalSocles = PORTES.filter((p) => !p.sansFin).length;
+  modal.appendChild(el('div', 'ligne-modal', `SOCLES RECOUSUS : ${reparees}/${totalSocles}`));
   const fermer = el('button', 'btn btn-modal', 'FERMER');
   fermer.addEventListener('click', fermerModal);
   modal.appendChild(fermer);
