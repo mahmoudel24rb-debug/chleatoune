@@ -88,6 +88,13 @@ function fusionner(brut: unknown): SaveData {
     evolutions: { ...(d.evolutions ?? {}) },
     compagnons: { ...(d.compagnons ?? {}) },
     bestiaire: { ...(d.bestiaire ?? {}) },
+    succes: { ...(d.succes ?? {}) },
+    titres: Array.isArray(d.titres) ? d.titres : [],
+    secrets: Array.isArray(d.secrets) ? d.secrets : [],
+    chasse: d.chasse ?? null,
+    calendrier: { ...defauts.calendrier, ...(d.calendrier ?? {}) },
+    drapeaux: { ...(d.drapeaux ?? {}) },
+    filRouge: { ...defauts.filRouge, ...(d.filRouge ?? {}) },
   };
   // Migration v1 → v2 : le bonus passif passe sur les plumes cumulées.
   if ((d.version ?? 1) < 2 && d.cumulPlumes === undefined) {

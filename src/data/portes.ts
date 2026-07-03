@@ -112,7 +112,9 @@ export const PORTES: PorteDef[] = [
   porte(11, 'LA FOSSE ABYSSALE', 4, 'nautilus', 'NAUTILUS, LE TITAN', 1460, 380),
   porte(12, 'LE GIVRE ÉTERNEL', 5, 'velkoz', 'VEL’KOZ, L’ŒIL DU GIVRE', 1980, 380),
   {
-    ...porte(13, 'LE FIL SANS FIN', 1, 'aurelionsol', 'AURELION SOL, SEIGNEUR DE CENDRE', 1200, 130),
+    // « LA DÉCHIRURE » (plan 15 §1) : le monde s'usera toujours — la
+    // porte sans fin est la justification canonique du scaling infini
+    ...porte(13, 'LA DÉCHIRURE', 1, 'aurelionsol', 'AURELION SOL, SEIGNEUR DE CENDRE', 1200, 130),
     sansFin: true,
   },
 ];

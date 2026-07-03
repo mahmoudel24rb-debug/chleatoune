@@ -266,6 +266,102 @@ export const SPRITE_TROPHEE = creerSprite(
   4
 );
 
+// ---- repères des chasses au trésor (plan 16 §4) : props dédiés, le
+// décor procédural ne peut pas servir de rendez-vous fiable
+export const SPRITES_REPERES: Record<string, HTMLCanvasElement> = {
+  borne_cousue: creerSprite(
+    [
+      '..KKKK..',
+      '.KGGGGK.',
+      '.KGfGfGK'.slice(0, 8),
+      '.KGGGGK.',
+      '.KGfGfGK'.slice(0, 8),
+      '.KGGGGK.',
+      '..KKKK..',
+      '..KSSK..',
+    ],
+    { K: '#4a3548', G: '#c8ccd4', f: '#f2d16b', S: '#8a8296' },
+    4
+  ),
+  statue_chat: creerSprite(
+    [
+      '..S..S..',
+      '..SSSS..',
+      '.SSeSeS.',
+      '..SSSS..',
+      '..SSSS..',
+      '.SSSSSS.',
+      '.SSSSSS.',
+      'SSSSSSSS',
+    ],
+    { S: '#9aa2b3', e: '#f2d16b' },
+    4
+  ),
+  rocher_marque: creerSprite(
+    [
+      '...RRR..',
+      '..RRRRR.',
+      '.RRxRxRR',
+      '.RRRxRRR',
+      'RRxRRRxR',
+      'RRRRRRRR',
+      '.RRRRRR.',
+      '........',
+    ],
+    { R: '#8a8296', x: '#f2d16b' },
+    4
+  ),
+};
+
+// le fil secret (plan 16 §3) : 3-4 pixels dorés qui ondulent, halo discret
+export const SPRITE_FIL_SECRET = creerSprite(
+  [
+    '..F.',
+    '.F..',
+    '..F.',
+    '.F..',
+    'FF..',
+  ],
+  { F: '#f2d16b' },
+  3
+);
+
+// panneau du Calendrier de l'Atelier (plan 16 §5)
+export const SPRITE_CALENDRIER = creerSprite(
+  [
+    'KKKKKKKKKK',
+    'KWWWWWWWWK',
+    'KWRRRRRRWK',
+    'KWWWWWWWWK',
+    'KWdWdWdWWK',
+    'KWWWWWWWWK',
+    'KWdWdWdWWK',
+    'KWWWWWWWWK',
+    'KKKKKKKKKK',
+    '...KK.....',
+    '...KK.....',
+  ],
+  { K: '#4a3548', W: '#f2f2f2', R: '#e5533f', d: '#8a8296' },
+  4
+);
+
+// la forge à aiguilles du Vieux Pic (plan 15, chapitre 4)
+export const SPRITE_FORGE = creerSprite(
+  [
+    '..KKKKKK..',
+    '.KGGGGGGK.',
+    '.KGffffGK.',
+    '.KGfOOfGK.',
+    '.KGfOOfGK.',
+    '.KGGGGGGK.',
+    '.KG....GK.',
+    '.KG....GK.',
+    'KKKKKKKKKK',
+  ],
+  { K: '#2c2337', G: '#5c606b', f: '#8a4a2c', O: '#ff8a3c' },
+  4
+);
+
 // ------------------------------------------------------------- ponton
 export const SPRITE_PONTON = creerSprite(
   [

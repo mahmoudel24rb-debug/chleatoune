@@ -6,8 +6,14 @@ import { zonesDebloquees } from '../data/progression';
 import { PARCHEMINS } from '../data/parchemins';
 import { MALEDICTIONS, scoreMaledictions } from '../data/maledictions';
 import { ARCHIMONSTRES } from '../data/archimonstres';
+import { CATEGORIES_SUCCES, SUCCES } from '../data/succes';
+import { RECOMPENSE_OFFRANDE } from '../data/calendrier';
 import { frameGlb } from '../core/sprites';
 import { setMaledictionsPorte } from '../systems/donjon';
+import { progressionSucces } from '../systems/succes';
+import { acheterChasse, chasseActive, indiceFilSecret } from '../systems/chasses';
+import { signalerActionFilRouge } from '../systems/filrouge';
+import { bonusDuJour, faireOffrande, offrandeDisponible, offrandeDuJour } from '../systems/calendrier';
 import { NIVEAU_MAX_SORT, SORTS, multNiveauSort, type SortDef } from '../data/sorts';
 import { SWARM, coutNiveauSort, coutParchemin } from '../data/swarm';
 import {
@@ -965,18 +971,268 @@ export function ouvrirAdoption(def: CompagnonBiomeDef): void {
   modal.appendChild(fermer);
 }
 
+// ------------------------------ l'Atelier (plan 15 §7, le moment cadeau)
+
+/** Le fond de l'atelier : établi, mannequin, bocaux de boutons —
+ *  procédural, dans le style des décors actuels. */
+function fondAtelier(): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = 480;
+  c.height = 200;
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = '#2c2337';
+  ctx.fillRect(0, 0, 480, 200);
+  ctx.fillStyle = '#3a2d47';
+  ctx.fillRect(0, 150, 480, 50); // le sol
+  // l'établi
+  ctx.fillStyle = '#8a5a34';
+  ctx.fillRect(40, 110, 160, 12);
+  ctx.fillRect(50, 122, 10, 40);
+  ctx.fillRect(180, 122, 10, 40);
+  // le mannequin de couture
+  ctx.fillStyle = '#c8ccd4';
+  ctx.fillRect(300, 70, 26, 50);
+  ctx.fillStyle = '#8a8296';
+  ctx.fillRect(310, 120, 6, 36);
+  ctx.fillRect(298, 156, 30, 6);
+  // les bocaux de boutons
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = '#5ab4d4';
+    ctx.fillRect(70 + i * 34, 88, 20, 22);
+    ctx.fillStyle = ['#f2d16b', '#ff8ac2', '#7dbb5c'][i];
+    ctx.fillRect(74 + i * 34, 96, 12, 12);
+  }
+  // les fils qui pendent du plafond
+  ctx.strokeStyle = '#f2d16b';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 6; i++) {
+    ctx.beginPath();
+    ctx.moveTo(60 + i * 70, 0);
+    ctx.lineTo(60 + i * 70 + 8, 40 + (i % 3) * 14);
+    ctx.stroke();
+  }
+  return c;
+}
+
+const CROQUIS = [
+  { titre: 'LE PREMIER CROQUIS', texte: 'Une tapisserie immense : prairies, scène, forêt, mine, désert.\nLE MONDE. Tout était donc… cousu.' },
+  { titre: 'LE DEUXIÈME CROQUIS', texte: 'Une poupée aux cheveux roux, des ciseaux à la main.\nLes patrons de CHLÉATOUNE. C’était donc elle, depuis le début.' },
+  { titre: 'LE TROISIÈME CROQUIS', texte: 'Un garde du corps aux poings d’acier, jamais cousu.\n« Pour veiller sur elle, un jour. » — note en marge.' },
+];
+
+let etapeAtelier = 0;
+
+export function ouvrirAtelier(premiere: boolean): void {
+  ouvrir();
+  modal.appendChild(el('h2', '', '🧵 L’ATELIER'));
+  const fond = fondAtelier();
+  fond.style.maxWidth = '100%';
+  modal.appendChild(fond);
+
+  if (premiere && etapeAtelier < CROQUIS.length) {
+    // les trois croquis épinglés, dans l'ordre
+    const croquis = CROQUIS[etapeAtelier];
+    modal.appendChild(el('div', 'ligne-modal', `${croquis.titre} (${etapeAtelier + 1}/3)`));
+    modal.appendChild(el('p', 'rebirb-explication', croquis.texte));
+    const btn = el('button', 'btn btn-modal affordable', etapeAtelier < 2 ? 'CROQUIS SUIVANT →' : 'LA LETTRE, SUR L’ÉTABLI…');
+    btn.addEventListener('click', () => {
+      etapeAtelier += 1;
+      ouvrirAtelier(true);
+    });
+    modal.appendChild(btn);
+    return;
+  }
+
+  // la lettre, page par page (⚠ THEME.lettreAtelier : placeholder à
+  // écrire à la main — jamais générée)
+  const pages = THEME.lettreAtelier;
+  const page = Math.max(0, Math.min(etapeAtelier - CROQUIS.length, pages.length - 1));
+  modal.appendChild(el('div', 'ligne-modal', `LA LETTRE — PAGE ${page + 1}/${pages.length}`));
+  const lettre = el('div', 'lettre-atelier');
+  for (const ligne of pages[page]) lettre.appendChild(el('div', 'ligne-chateau', ligne || ' '));
+  modal.appendChild(lettre);
+
+  if (page + 1 < pages.length) {
+    const btn = el('button', 'btn btn-modal affordable', 'TOURNER LA PAGE →');
+    btn.addEventListener('click', () => {
+      etapeAtelier = CROQUIS.length + page + 1;
+      ouvrirAtelier(premiere);
+    });
+    modal.appendChild(btn);
+  } else {
+    const btn = el('button', 'btn btn-modal affordable', premiere ? 'REPLIER LA LETTRE, DOUCEMENT.' : 'FERMER');
+    btn.addEventListener('click', () => {
+      etapeAtelier = 0;
+      fermerModal();
+      if (premiere) {
+        signalerActionFilRouge('atelier');
+        ajouterToast('🧵 L’ATELIER RESTERA OUVERT. POUR LA RELIRE.');
+      }
+    });
+    modal.appendChild(btn);
+  }
+}
+
+// ------------------------- Calendrier, Sphinge & Succès (plan 16)
+
+export function ouvrirCalendrier(): void {
+  ouvrir();
+  modal.appendChild(el('h2', '', '🗓 LE CALENDRIER DE L’ATELIER'));
+  const bonus = bonusDuJour();
+  modal.appendChild(el('div', 'ligne-modal', `AUJOURD'HUI : ${bonus.nom} — ${bonus.description}`));
+  if (state.save.calendrier.serie > 0) {
+    modal.appendChild(el('div', 'ligne-modal', `SÉRIE D'OFFRANDES : ${state.save.calendrier.serie} 🕯`));
+  }
+  const offrande = offrandeDuJour();
+  const nomMonnaie = offrande.monnaie === 'dore' ? THEME.dore.pluriel : THEME.monnaies[offrande.monnaie].nom;
+  if (offrandeDisponible()) {
+    const btn = el(
+      'button',
+      'btn btn-modal affordable',
+      `OFFRIR ${formatNombre(offrande.quantite, 0)} ${nomMonnaie} → +${RECOMPENSE_OFFRANDE} ${THEME.dore.pluriel}`
+    );
+    btn.addEventListener('click', () => {
+      if (faireOffrande()) ouvrirCalendrier();
+      else {
+        sons.refus();
+        ajouterToast('PAS ASSEZ POUR L’OFFRANDE… REVIENS PLUS RICHE !');
+      }
+    });
+    modal.appendChild(btn);
+  } else {
+    modal.appendChild(el('div', 'ligne-modal', 'OFFRANDE DU JOUR DÉJÀ FAITE ✔ — À DEMAIN !'));
+  }
+  const fermer = el('button', 'btn btn-modal', 'FERMER');
+  fermer.addEventListener('click', fermerModal);
+  modal.appendChild(fermer);
+}
+
+const COUT_CARTE = 120;
+const COUT_INDICE = 60;
+
+export function ouvrirSphinge(): void {
+  ouvrir();
+  modal.appendChild(el('h2', '', '🐈 LA SPHINGE DES SABLES'));
+  modal.appendChild(
+    el('p', 'rebirb-explication', '« Des trésors dorment sous le sable, petite poupée. Je vends les questions ; à toi les réponses. »')
+  );
+  const active = chasseActive();
+  if (active) {
+    modal.appendChild(el('div', 'ligne-modal', `CHASSE EN COURS — ÉTAPE ${active.etape + 1}/3`));
+    modal.appendChild(el('div', 'ligne-modal', active.def.etapes[active.etape].indice));
+  } else {
+    const btnCarte = el('button', 'btn btn-modal', `CARTE AU TRÉSOR — ${COUT_CARTE} ${THEME.dore.pluriel}`);
+    btnCarte.disabled = state.save.soldeDore < COUT_CARTE;
+    btnCarte.classList.toggle('affordable', state.save.soldeDore >= COUT_CARTE);
+    btnCarte.addEventListener('click', () => {
+      if (state.save.soldeDore < COUT_CARTE) return;
+      state.save.soldeDore -= COUT_CARTE;
+      const def = acheterChasse();
+      sons.achat();
+      ajouterToast(`🗺 ${def.etapes[0].indice}`);
+      fermerModal();
+    });
+    modal.appendChild(btnCarte);
+    modal.appendChild(
+      el('div', 'ligne-modal', '(une seule chasse à la fois — en racheter une remplace la carte)')
+    );
+  }
+  const btnIndice = el('button', 'btn btn-modal', `INDICE DE FIL SECRET — ${COUT_INDICE} ${THEME.dore.pluriel}`);
+  btnIndice.disabled = state.save.soldeDore < COUT_INDICE;
+  btnIndice.classList.toggle('affordable', state.save.soldeDore >= COUT_INDICE);
+  btnIndice.addEventListener('click', () => {
+    if (state.save.soldeDore < COUT_INDICE) return;
+    const zone = indiceFilSecret();
+    if (!zone) {
+      ajouterToast('« TU AS DÉJÀ TIRÉ TOUS LES FILS, PETITE POUPÉE. »');
+      return;
+    }
+    state.save.soldeDore -= COUT_INDICE;
+    sons.achat();
+    ajouterToast(`🐈 « UN FIL DÉPASSE ENCORE DU CÔTÉ DE ${zone}… »`);
+    sauvegarder();
+    fermerModal();
+  });
+  modal.appendChild(btnIndice);
+  const fermer = el('button', 'btn btn-modal', 'FERMER');
+  fermer.addEventListener('click', fermerModal);
+  modal.appendChild(fermer);
+}
+
+export function ouvrirSucces(): void {
+  ouvrir();
+  const progression = progressionSucces();
+  modal.appendChild(
+    el('h2', '', `🏆 SUCCÈS — ${progression.faits}/${progression.total} (${Math.round(progression.pct * 100)} %)`)
+  );
+  for (const categorie of CATEGORIES_SUCCES) {
+    const liste = SUCCES.filter((s) => s.categorie === categorie.id);
+    modal.appendChild(el('div', 'ligne-modal', `— ${categorie.nom} —`));
+    for (const def of liste) {
+      const fait = state.save.succes[def.id] === true;
+      if (def.cache && !fait) continue; // masqué : spoiler ou plan absent
+      const ligne = el('div', 'ligne-dex');
+      const infos = el('div', 'dex-infos');
+      const nom = el('div', 'dex-nom', `${fait ? '★' : '☆'} ${def.nom}`);
+      nom.style.color = fait ? '#f2d16b' : '#8a8a96';
+      infos.appendChild(nom);
+      let detail = def.description;
+      if (!fait) {
+        const progres = def.condition(state.save);
+        if (typeof progres === 'number' && progres > 0) {
+          detail += ` (${Math.round(progres * 100)} %)`;
+        }
+      }
+      if (def.recompense?.titre && fait) detail += ` → titre « ${def.recompense.titre} »`;
+      infos.appendChild(el('div', 'dex-detail', detail));
+      ligne.appendChild(infos);
+      modal.appendChild(ligne);
+    }
+  }
+  const fermer = el('button', 'btn btn-modal', 'FERMER');
+  fermer.addEventListener('click', fermerModal);
+  modal.appendChild(fermer);
+}
+
 export function ouvrirProfil(): void {
   ouvrir();
   modal.appendChild(el('h2', '', profilActif()?.nom ?? 'PROFIL'));
+  // le titre actif (plan 16 §2), sélectionnable parmi les débloqués
+  if (state.save.titres.length > 0) {
+    const ligne = el('div', 'ligne-modal');
+    const choix = el('select', 'dev-champ') as HTMLSelectElement;
+    for (const titre of state.save.titres) {
+      const opt = el('option', '', `« ${titre} »`) as HTMLOptionElement;
+      opt.value = titre;
+      choix.appendChild(opt);
+    }
+    choix.value = state.save.titreActif ?? state.save.titres[0];
+    choix.addEventListener('change', () => {
+      state.save.titreActif = choix.value;
+      sons.achat();
+      sauvegarder();
+    });
+    ligne.append(el('span', '', 'TITRE : '), choix);
+    modal.appendChild(ligne);
+  }
+  const btnSucces = el('button', 'btn btn-modal', '🏆 VOIR LES SUCCÈS');
+  btnSucces.addEventListener('click', ouvrirSucces);
+  modal.appendChild(btnSucces);
 
   const minutes = Math.floor(state.save.tempsJeu / 60);
   const heures = Math.floor(minutes / 60);
   const temps = heures > 0 ? `${heures} H ${minutes % 60} MIN` : `${minutes} MIN`;
 
   const dex = progressionDex();
+  const succes = progressionSucces();
   const lignes = [
     `TEMPS DE JEU : ${temps}`,
     `NIVEAU : ${state.save.heros.niveau}`,
+    `SUCCÈS : ${succes.faits}/${succes.total}`,
+    ...(state.save.filRouge.bobines.length > 0
+      ? [`🧵 FIL ROUGE : CH. ${Math.min(state.save.filRouge.chapitre, 7)} — BOBINES ${state.save.filRouge.bobines.length}/6`]
+      : []),
+    ...(state.save.drapeaux.aiguilleCouturier ? ['🪡 L’AIGUILLE DU COUTURIER (objet d’histoire)'] : []),
     `PORTES DE L'ANTRE : ${Math.min(state.save.swarm.porteMax, 12)}/12${state.save.swarm.sansFinRecord > 0 ? ` — SANS-FIN : V.${state.save.swarm.sansFinRecord}` : ''}`,
     `${THEME.prestige.verbe} : ${state.save.rebirbs}`,
     `${THEME.prestige.nom} : ${formatNombre(state.save.plumes, 0)} (CUMUL ${formatNombre(state.save.cumulPlumes, 0)})`,

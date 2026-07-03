@@ -12,6 +12,8 @@ import { SPRITES_MONNAIES, SPRITE_PLUME, SPRITE_SMISKI_DORE } from '../core/spri
 import { taux } from '../systems/economy';
 import { getMaledictionsActives, getPorte, getPv, getVague, pvMaxCourant } from '../systems/donjon';
 import { defiCourant } from '../systems/defis';
+import { indiceCourant } from '../systems/chasses';
+import { ligneFilRouge } from '../systems/filrouge';
 import { sons } from '../systems/audio';
 import { sauvegarder } from '../systems/save';
 import { ajouterToast } from './toasts';
@@ -28,6 +30,7 @@ interface Capsule {
 const capsules = new Map<CleCapsule, Capsule>();
 let btnAuto: HTMLButtonElement;
 let zoneIndicateur: HTMLElement;
+let suivi: HTMLElement;
 let flecheGauche: HTMLButtonElement;
 let flecheDroite: HTMLButtonElement;
 let barreTexte: HTMLElement;
@@ -77,6 +80,11 @@ export function initHud(): void {
   btnAuto.addEventListener('click', basculerAuto);
 
   zoneIndicateur = document.getElementById('zone-indicateur')!;
+
+  // ligne de suivi (plan 15/16) : Fil Rouge + indice de chasse, en haut
+  // à gauche, modes monde/antre seulement
+  suivi = el('div', 'suivi cache');
+  document.getElementById('game-area')!.appendChild(suivi);
   flecheGauche = document.getElementById('fleche-gauche') as HTMLButtonElement;
   flecheDroite = document.getElementById('fleche-droite') as HTMLButtonElement;
   flecheGauche.addEventListener('click', () => changerZone(-1));
@@ -200,7 +208,8 @@ export function majHud(): void {
         texteMaledictions
     );
   } else if (jeu.mode === 'antre') {
-    setTexte(zoneIndicateur, `🚪 L'ANTRE — PORTES : ${Math.min(save.swarm.porteMax, 12)}/12`);
+    // « L'ENVERS » (plan 15 §1) : l'envers de la tapisserie, ses 12 accrocs
+    setTexte(zoneIndicateur, `🚪 L'ENVERS — ACCROCS : ${Math.min(save.swarm.porteMax, 12)}/12`);
   } else if (jeu.mode === 'peche') {
     setTexte(zoneIndicateur, `LE PONTON 🎣 NIV. ${save.peche.niveau}`);
   } else {
@@ -209,6 +218,18 @@ export function majHud(): void {
       zone.donjon ? 'HALL DU DONJON' : `${zone.nom} ${indexAcces + 1}/${acces.length}`
     );
   }
+  // ligne de suivi : Fil Rouge (plan 15) + indice de chasse (plan 16)
+  const lignesSuivi: string[] = [];
+  if (jeu.mode === 'monde' || jeu.mode === 'antre') {
+    const fil = ligneFilRouge();
+    if (fil) lignesSuivi.push(fil);
+    const indice = indiceCourant();
+    if (indice && jeu.mode === 'monde') lignesSuivi.push(indice);
+  }
+  const texteSuivi = lignesSuivi.join('\n');
+  if (suivi.textContent !== texteSuivi) suivi.textContent = texteSuivi;
+  suivi.classList.toggle('cache', texteSuivi === '');
+
   const enMonde = jeu.mode === 'monde';
   flecheGauche.style.display = enMonde && indexAcces > 0 ? '' : 'none';
   flecheDroite.style.display =

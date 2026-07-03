@@ -4,6 +4,7 @@ import { CONFIG } from '../data/config';
 import { input } from '../core/input';
 import { state } from '../core/state';
 import { clamp } from '../core/utils';
+import { bonusActif } from '../systems/calendrier';
 import type { DirectionHeroine } from '../core/sprites';
 
 export const birb = {
@@ -36,7 +37,8 @@ export function majBirb(dt: number): void {
     // Vecteur normalisé : les diagonales ne vont pas plus vite.
     ax /= longueur;
     ay /= longueur;
-    const v = state.stats.vitesseBirb;
+    // VENDREDI DES SEMELLES (plan 16 §5) : vitesse +10 %
+    const v = state.stats.vitesseBirb * (bonusActif('vitesse') ? 1.1 : 1);
     birb.x += ax * v * dt;
     birb.y += ay * v * dt;
     // Vue selon l'axe dominant : côté > haut/bas (diagonales en profil).

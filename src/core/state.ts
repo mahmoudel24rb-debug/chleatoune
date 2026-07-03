@@ -87,6 +87,22 @@ export interface SaveData {
   bestiaire: Record<string, number>;
   /** récompense de collection déjà versée */
   bestiaireComplet: boolean;
+  // ---- plan 16 (additif) ----
+  /** id de succès → débloqué */
+  succes: Record<string, boolean>;
+  titres: string[];
+  titreActif: string | null;
+  /** fils secrets déjà tirés (une seule fois par profil) */
+  secrets: string[];
+  /** chasse au trésor en cours (null = aucune) */
+  chasse: { id: string; etape: number; tSansProgres: number } | null;
+  chassesFaites: number;
+  /** date LOCALE en chaîne : les fuseaux ne cassent jamais une série */
+  calendrier: { dernierJour: string; serie: number };
+  /** petits drapeaux d'événements (succès « sans dégât », etc.) */
+  drapeaux: Record<string, boolean>;
+  // ---- plan 15 (additif) ----
+  filRouge: { chapitre: number; etape: number; bobines: string[]; compteur: number };
 }
 
 function zeros(): Record<MonnaieId, number> {
@@ -130,6 +146,15 @@ export function defautsSave(): SaveData {
     compagnons: {},
     bestiaire: {},
     bestiaireComplet: false,
+    succes: {},
+    titres: [],
+    titreActif: null,
+    secrets: [],
+    chasse: null,
+    chassesFaites: 0,
+    calendrier: { dernierJour: '', serie: 0 },
+    drapeaux: {},
+    filRouge: { chapitre: 1, etape: 0, bobines: [], compteur: 0 },
   };
 }
 

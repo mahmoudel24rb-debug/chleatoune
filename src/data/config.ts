@@ -31,6 +31,22 @@ export const THEME = {
     '(Psst : ce message se change dans',
     'src/data/config.ts → messageChateau)',
   ],
+  /** Le Grand Couturier (plan 15) — le créateur disparu de la tapisserie. */
+  couturier: { nom: 'LE GRAND COUTURIER' },
+  /** La lettre de l'Atelier (plan 15 §7), page par page, ligne par ligne.
+   *  ⚠ PLACEHOLDER VOLONTAIRE : c'est TA lettre, à la première personne,
+   *  signée de ta main. Jamais générée, jamais inventée par une IA. */
+  lettreAtelier: [
+    [
+      '[À ÉCRIRE — C’EST TA LETTRE]',
+      '',
+      '(Cette page se remplit dans',
+      'src/data/config.ts → THEME.lettreAtelier.',
+      'Écris-la toi-même, page par page —',
+      'c’est le moment cadeau du jeu.)',
+    ],
+    ['[PAGE 2 — À ÉCRIRE]'],
+  ] as string[][],
   monnaies: {
     popcorn: { nom: 'SMISKI', couleur: '#d9edb2' },
     graine: { nom: 'MIKU', couleur: '#39c5bb' },

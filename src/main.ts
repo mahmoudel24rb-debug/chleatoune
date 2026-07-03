@@ -66,6 +66,10 @@ import {
   majInteractions,
 } from './systems/interactions';
 import { garantirQuetes } from './systems/quetes';
+import { initSucces, majSucces } from './systems/succes';
+import { cibleAideChasse, majChasse } from './systems/chasses';
+import { cercleScene, initFilRouge, majFilRouge } from './systems/filrouge';
+import { avancerDialogue, couperDialogue, dialogueEnCours, majDialogue } from './ui/dialogue';
 import { ajouterParticules, dessinerFx, majFx } from './systems/fx';
 import { nomArchimonstre } from './data/archimonstres';
 import { SWARM } from './data/swarm';
@@ -102,6 +106,7 @@ const ecran = initCanvas(document.querySelector<HTMLCanvasElement>('#game-area')
 initOverlays();
 initHud();
 initInteractions();
+initFilRouge();
 amenagerCartes();
 restaurerScene(); // recharger en plein donjon ramène dans l'Antre
 construirePanneau();
@@ -110,7 +115,12 @@ initCreation(); // premier lancement : écran d'accueil (créer / se connecter)
 // Les gains hors-ligne s'appliquent APRÈS la synchro cloud : si la partie
 // a avancé sur un autre appareil, c'est la version adoptée qui les reçoit
 // (sinon ils seraient calculés puis écrasés silencieusement).
-void initCloud().then(() => appliquerGainsHorsLigne());
+void initCloud().then(() => {
+  appliquerGainsHorsLigne();
+  // succès : le balayage de rattrapage tourne APRÈS la migration et la
+  // synchro (plan 16, pièges) — sinon faux négatifs
+  initSucces();
+});
 initBeaconCloud(); // dernière synchro garantie à la fermeture de l'onglet
 
 // PWA : le service worker rend le jeu installable et jouable hors-ligne
@@ -125,7 +135,8 @@ const pecheNiveau = document.getElementById('peche-niveau')!;
 
 // Raccourcis clavier
 surTouche('Escape', () => {
-  if (modalOuvert()) fermerModal();
+  if (dialogueEnCours()) couperDialogue();
+  else if (modalOuvert()) fermerModal();
   else if (jeu.mode === 'peche') sortirPeche();
   else basculerParametres();
 });
@@ -134,11 +145,13 @@ surTouche('KeyT', () => ajouterToast('LE CHAT ARRIVERA AVEC LE MULTIJOUEUR !'));
 surTouche('KeyC', basculerAuto);
 surTouche('KeyF', basculerMikudex);
 surTouche('KeyE', () => {
-  if (jeu.mode === 'peche') sortirPeche();
+  if (dialogueEnCours()) avancerDialogue();
+  else if (jeu.mode === 'peche') sortirPeche();
   else activerInteraction();
 });
 surTouche('Space', () => {
-  if (jeu.mode === 'peche') actionPeche();
+  if (dialogueEnCours()) avancerDialogue();
+  else if (jeu.mode === 'peche') actionPeche();
 });
 surTouche('KeyB', () => {
   if (jeu.mode === 'peche') basculerBoutiquePeche();
@@ -161,6 +174,16 @@ let msFrame = 16;
 
 function update(dt: number): void {
   state.save.tempsJeu += dt;
+
+  // dialogue en cours (plan 15 §2) : monde en pause douce — texte au
+  // fil, fx et HUD continuent, déplacements et combat gelés
+  if (dialogueEnCours()) {
+    majDialogue(dt);
+    majFx(dt);
+    majHud();
+    return;
+  }
+
   majPecheurs(dt); // les doughcats pêcheurs travaillent partout
 
   if (jeu.mode === 'peche') {
@@ -209,6 +232,9 @@ function update(dt: number): void {
   }
 
   majFx(dt);
+  majSucces(dt);
+  majChasse(dt);
+  majFilRouge(dt);
   majHud();
 
   // UI pêche
@@ -296,6 +322,25 @@ function dessinerMonde(): void {
       ? decorZone(INDEX_DONJON)
       : decorZone(state.save.zone);
   ctx.drawImage(decor, -camX, -camY);
+
+  // le cercle de scène du Fil Rouge (ch. 2) : notes et compte à rebours
+  const cercle = cercleScene();
+  if (cercle.actif) {
+    const cx = Math.round(cercle.x - camX);
+    const cy = Math.round(cercle.y - camY);
+    ctx.strokeStyle = `rgba(57, 197, 187, ${0.5 + Math.sin(performance.now() / 300) * 0.3})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, cercle.rayon, 0, Math.PI * 2);
+    ctx.stroke();
+    if (cercle.progres > 0) {
+      ctx.strokeStyle = '#39c5bb';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, cercle.rayon, -Math.PI / 2, -Math.PI / 2 + cercle.progres * Math.PI * 2);
+      ctx.stroke();
+    }
+  }
 
   // Structures et objets interactifs (portail, panneaux, marchand…)
   dessinerInteractifs(ctx, camX, camY);
@@ -463,6 +508,28 @@ function dessinerMonde(): void {
   ctx.globalAlpha = 1;
 
   dessinerFx(ctx, camX, camY);
+
+  // clémence des chasses (plan 16 §4) : après 90 s sans progrès, une
+  // flèche discrète pulse au bord de l'écran vers le repère
+  const aide = cibleAideChasse();
+  if (aide && Math.sin(performance.now() / 250) > 0) {
+    const dx = aide.x - birb.x;
+    const dy = aide.y - birb.y;
+    const angle = Math.atan2(dy, dx);
+    const px = ecran.largeur / 2 + Math.cos(angle) * (Math.min(ecran.largeur, ecran.hauteur) / 2 - 46);
+    const py = ecran.hauteur / 2 + Math.sin(angle) * (Math.min(ecran.largeur, ecran.hauteur) / 2 - 46);
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(angle);
+    ctx.fillStyle = 'rgba(242, 209, 107, 0.75)';
+    ctx.beginPath();
+    ctx.moveTo(14, 0);
+    ctx.lineTo(-8, -9);
+    ctx.lineTo(-8, 9);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
 
   // Habillage du donjon : barre de boss, textes de phase
   if (enDonjon()) {

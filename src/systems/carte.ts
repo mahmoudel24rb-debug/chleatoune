@@ -11,12 +11,26 @@ import { formatNombre } from '../core/utils';
 import {
   SPRITE_ARBRE_GEANT,
   SPRITE_AUTEL,
+  SPRITE_CALENDRIER,
+  SPRITE_FIL_SECRET,
   SPRITE_MARCHAND,
   SPRITE_PONTON,
   SPRITE_PORTAIL,
   SPRITE_PORTE,
   SPRITES_PANNEAUX,
+  SPRITES_REPERES,
 } from '../core/structures';
+import { SECRETS } from '../data/secrets';
+import { CHASSES, CHASSE_FIL_ROUGE } from '../data/chasses';
+import { PNJS } from '../data/pnj';
+import { creerSprite, chargerSpritesGlb, SPRITES_DOUGHCAT, SPRITES_YUUMI } from '../core/sprites';
+import { SPRITE_FORGE } from '../core/structures';
+import { dist } from '../core/utils';
+import { birb } from '../entities/birb';
+import { activerRepere, chasseActive, tirerFilSecret } from './chasses';
+import { parlerAuPnj, pnjAUneEtape, signalerActionFilRouge, etapeCourante } from './filrouge';
+import { ajouterParticules } from './fx';
+import { ouvrirAtelier, ouvrirCalendrier, ouvrirSphinge } from '../ui/overlays';
 import { enregistrer } from './interactions';
 import { amenagerAntre, entrerAntre } from './antre';
 import { entrerPeche } from './peche';
@@ -68,8 +82,26 @@ export function amenagerCartes(): void {
       y: 880,
       rayon: 80,
       sprite: () => SPRITE_PORTE,
-      texte: () => 'LA PORTE DU CHÂTEAU…',
-      action: ouvrirChateau,
+      // les bobines s'affichent sur la porte au fil des chapitres ; à
+      // 6/6 la serrure en chas d'aiguille s'ouvre (plan 15 §7)
+      etiquette: () =>
+        state.save.filRouge.bobines.length > 0
+          ? `🧵 ${state.save.filRouge.bobines.length}/6 BOBINES`
+          : '',
+      pulse: () =>
+        state.save.filRouge.bobines.length >= 6 && state.save.filRouge.chapitre === 7,
+      texte: () =>
+        state.save.filRouge.chapitre > 7
+          ? 'L’ATELIER — relire la lettre'
+          : state.save.filRouge.bobines.length >= 6
+            ? 'LA SERRURE EN CHAS D’AIGUILLE… LES 6 BOBINES VIBRENT.'
+            : 'LA PORTE DU CHÂTEAU…',
+      action: () => {
+        if (state.save.filRouge.chapitre > 7) ouvrirAtelier(false);
+        else if (state.save.filRouge.chapitre === 7 && state.save.filRouge.bobines.length >= 6)
+          ouvrirAtelier(true);
+        else ouvrirChateau();
+      },
     },
   ]);
 
@@ -164,6 +196,137 @@ export function amenagerCartes(): void {
       visible: () => state.save.desert['d_marchand'] === true,
       texte: () => 'MARCHAND DE QUÊTES [Q]',
       action: ouvrirMarchand,
+    },
+  ]);
+
+  // ------------------------------- les PNJ du Fil Rouge (plan 15 §3)
+  for (const pnj of PNJS) {
+    const sprite = () =>
+      pnj.spriteId === 'doughcat'
+        ? SPRITES_DOUGHCAT.idle
+        : pnj.spriteId === 'yuumi'
+          ? SPRITES_YUUMI.idle
+          : (chargerSpritesGlb(pnj.spriteId, 2)['face_idle'] ?? SPRITES_DOUGHCAT.idle);
+    enregistrer(`zone-${pnj.zone}`, [
+      {
+        id: `pnj-${pnj.id}`,
+        x: pnj.x,
+        y: pnj.y,
+        rayon: 95,
+        sprite,
+        // `!` doré = étape du Fil Rouge · `…` gris = ambiance (plan 15 §3)
+        etiquette: () => `${pnjAUneEtape(pnj.id) ? '❗ ' : '… '}${pnj.nom}`,
+        pulse: () => pnjAUneEtape(pnj.id),
+        texte: () => `PARLER À ${pnj.nom}`,
+        action: () => parlerAuPnj(pnj.id, pnj.ambiance),
+      },
+    ]);
+  }
+
+  // ------------------------------- la forge à aiguilles (plan 15, ch. 4)
+  enregistrer('zone-3', [
+    {
+      id: 'forge',
+      x: 2200,
+      y: 300,
+      rayon: 90,
+      visible: () => {
+        const etape = etapeCourante();
+        return (
+          state.save.drapeaux.forgeActivee === true ||
+          (etape?.type === 'action' && etape.objectif?.action === 'forge')
+        );
+      },
+      sprite: () => SPRITE_FORGE,
+      etiquette: () => (state.save.drapeaux.forgeActivee ? 'LA FORGE' : '❗ LA FORGE ÉTEINTE'),
+      texte: () => (state.save.drapeaux.forgeActivee ? 'Elle ronfle doucement.' : 'RALLUMER LA FORGE À AIGUILLES'),
+      action: () => {
+        if (!state.save.drapeaux.forgeActivee) {
+          state.save.drapeaux.forgeActivee = true;
+          ajouterParticules(2200, 260, '#ff8a3c', 24);
+          sons.rebirb();
+          ajouterToast('🔥 LA FORGE À AIGUILLES SE RALLUME !');
+          signalerActionFilRouge('forge');
+          sauvegarder();
+        } else {
+          ajouterToast('ELLE FORGE. LE VIEUX PIC SOURIT PRESQUE.');
+        }
+      },
+    },
+  ]);
+
+  // ------------------------------- fils secrets (plan 16 §3)
+  // Le décor étant procédural, le fil apporte SON visuel — invisible à
+  // plus de ~180 px (c'est un secret, pas un marqueur de quête).
+  const spriteVide = creerSprite(['.'], {});
+  for (const fil of SECRETS) {
+    enregistrer(`zone-${fil.zone}`, [
+      {
+        id: fil.id,
+        x: fil.x,
+        y: fil.y,
+        rayon: 60,
+        visible: () => !state.save.secrets.includes(fil.id),
+        sprite: () => (dist(birb.x, birb.y, fil.x, fil.y) < 180 ? SPRITE_FIL_SECRET : spriteVide),
+        texte: () => 'UN FIL DORÉ DÉPASSE… LE TIRER ?',
+        action: () => tirerFilSecret(fil.id),
+      },
+    ]);
+  }
+
+  // ------------------------------- repères de chasse (plan 16 §4)
+  // Chaque repère n'existe dans le monde QUE pendant sa propre étape.
+  for (const chasse of [...CHASSES, CHASSE_FIL_ROUGE]) {
+    chasse.etapes.forEach((etape, index) => {
+      enregistrer(`zone-${etape.zone}`, [
+        {
+          id: `${chasse.id}-${index}`,
+          x: etape.x,
+          y: etape.y,
+          rayon: 90,
+          visible: () => {
+            const active = chasseActive();
+            return active?.def.id === chasse.id && active.etape === index;
+          },
+          sprite: () => SPRITES_REPERES[etape.repere],
+          etiquette: () =>
+            etape.repere === 'borne_cousue'
+              ? 'BORNE COUSUE'
+              : etape.repere === 'statue_chat'
+                ? 'STATUE DU CHAT'
+                : 'ROCHER MARQUÉ',
+          texte: () => (index < 2 ? 'EXAMINER LE REPÈRE' : 'CREUSER ICI ⛏'),
+          action: activerRepere,
+        },
+      ]);
+    });
+  }
+
+  // ------------------------------- le Calendrier de l'Atelier (plan 16 §5)
+  enregistrer('zone-0', [
+    {
+      id: 'calendrier',
+      x: 180,
+      y: 700,
+      rayon: 90,
+      sprite: () => SPRITE_CALENDRIER,
+      etiquette: () => '🗓 CALENDRIER',
+      texte: () => 'LE CALENDRIER DE L’ATELIER\nBonus du jour et offrande.',
+      action: ouvrirCalendrier,
+    },
+  ]);
+
+  // ------------------------------- la Sphinge des Sables (plan 16 §4)
+  enregistrer(`zone-${INDEX_DESERT}`, [
+    {
+      id: 'sphinge',
+      x: 1800,
+      y: 1300,
+      rayon: 95,
+      sprite: () => SPRITES_REPERES.statue_chat,
+      etiquette: () => '🐈 LA SPHINGE DES SABLES',
+      texte: () => 'LA SPHINGE DES SABLES\nCartes au trésor et indices, contre des dorés.',
+      action: ouvrirSphinge,
     },
   ]);
 

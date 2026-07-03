@@ -50,6 +50,10 @@ import {
 import { scoreMaledictions } from '../data/maledictions';
 import { collectionComplete, nomArchimonstre } from '../data/archimonstres';
 import { progresserQuete, signalerDonjonTermine } from './quetes';
+import { bonusActif } from './calendrier';
+import { evaluerSucces } from './succes';
+import { effilocheuseActive } from './filrouge';
+import { ouvrirDialogue } from '../ui/dialogue';
 import { ajouterParticules, ajouterTexteFlottant } from './fx';
 import { sons } from './audio';
 import { sauvegarder } from './save';
@@ -388,6 +392,13 @@ export function entrerDonjon(p: PorteDef): void {
   pv = pvMaxCourant();
   demarrerDefi(p, getEscouade().length, bossDef(p.bossId).patterns);
   lancerVague(0);
+  // la Grande Effilocheuse se présente (plan 15 §6) : première entrée
+  // en porte 12 avec le chapitre 6 actif — le donjon gèle pendant les
+  // 2 boîtes (main.ts fige la boucle tant qu'un dialogue est ouvert)
+  if (p.niveau === 12 && effilocheuseActive() && !state.save.drapeaux.effilocheusePresentee) {
+    state.save.drapeaux.effilocheusePresentee = true;
+    ouvrirDialogue('effilocheuse_avant');
+  }
   ajouterToast(`⚔ ${p.nom} — VAGUE 1/${p.sansFin ? '∞' : p.nbVagues}`);
 }
 
@@ -428,7 +439,9 @@ function rareteCoffrePorte(niveau: number): RareteCoffre {
 
 function ouvrirCoffre(c: Coffre): void {
   const niveau = porte?.niveau ?? 1;
-  const dores = Math.round((3 + niveau * 4) * MULT_RARETE[c.rarete] * state.stats.multCoffres);
+  // SAMEDI DES COFFRES (plan 16 §5) : butin +25 %
+  const multJour = bonusActif('coffres') ? 1.25 : 1;
+  const dores = Math.round((3 + niveau * 4) * MULT_RARETE[c.rarete] * state.stats.multCoffres * multJour);
   crediterDore(dores, c.x, c.y);
   doresRamasses += dores;
   if (c.rarete !== 'commun' && Math.random() < 0.25) {
@@ -449,7 +462,9 @@ function ouvrirCoffre(c: Coffre): void {
 
 function gagnerXp(montant: number, brut = false): void {
   const heros = state.save.heros;
-  const gain = Math.round(brut ? montant : montant * state.stats.multXp);
+  // MERCREDI DE L'ENVERS (plan 16 §5) : XP des donjons +25 %
+  const multJour = !brut && enDonjon() && bonusActif('xpEnvers') ? 1.25 : 1;
+  const gain = Math.round(brut ? montant : montant * state.stats.multXp * multJour);
   heros.xp += gain;
   if (enDonjon()) xpPorte += gain;
   let monte = false;
@@ -532,6 +547,13 @@ function victoire(): void {
     }
     if (bonusXp > 0) gagnerXp(bonusXp, true);
   }
+
+  // drapeaux des succès (plan 16) : « sans une égratignure », « maudite »
+  if (degatsPris === 0) state.save.drapeaux.porteSansDegat = true;
+  if (score >= 100) state.save.drapeaux.mauditeScore100 = true;
+  // le Fil Rouge (plan 15) lira ce drapeau une fois de retour à l'Envers
+  if (porte.niveau === 12) state.save.drapeaux.effilocheuseVaincue = true;
+  evaluerSucces();
 
   sons.rebirb();
   sauvegarder();

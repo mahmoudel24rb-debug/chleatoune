@@ -13,6 +13,7 @@ import { enregistrer, type Interactif } from './interactions';
 import { ajouterToast } from '../ui/toasts';
 import { ouvrirConfirmationPorte, ouvrirMercier } from '../ui/overlays';
 import { entrerDonjon, essayerSortirDonjon } from './donjon';
+import { parlerAuPnj, pnjAUneEtape } from './filrouge';
 import { sauvegarder } from './save';
 
 const CLE_SCENE = 'chleatoune_scene'; // sessionStorage : recharger en plein
@@ -90,9 +91,17 @@ export function amenagerAntre(): void {
     y: CONFIG.monde.hauteur - 160,
     rayon: 95,
     sprite: () => spriteMercier() ?? SPRITE_MARCHAND,
-    etiquette: () => '🧵 LE MERCIER',
-    texte: () => 'LE MERCIER [M]\nParchemins de stats et sortilèges cousus.',
-    action: ouvrirMercier,
+    etiquette: () => `${pnjAUneEtape('mercier') ? '❗ ' : ''}🧵 LE MERCIER`,
+    pulse: () => pnjAUneEtape('mercier'),
+    texte: () =>
+      pnjAUneEtape('mercier')
+        ? 'LE MERCIER A QUELQUE CHOSE À TE DIRE…'
+        : 'LE MERCIER [M]\nParchemins de stats et sortilèges cousus.',
+    action: () => {
+      // le Fil Rouge d'abord (ch. 6), la boutique ensuite (plan 15)
+      if (pnjAUneEtape('mercier')) parlerAuPnj('mercier', 'ambiance_brioche');
+      else ouvrirMercier();
+    },
   });
 
   // le trophée du bestiaire complet (plan 14 §3), au mur de l'Antre

@@ -9,6 +9,7 @@ import { ajouterParticules, ajouterTexteFlottant } from './fx';
 import { sons } from './audio';
 import { formatNombre } from '../core/utils';
 import { progresserQuete } from './quetes';
+import { bonusActif } from './calendrier';
 
 type CleTaux = MonnaieId | 'plume' | 'dore';
 
@@ -34,7 +35,9 @@ export function taux(cle: CleTaux): number {
 
 /** Gain d'une monnaie classique : solde, cumuls, cycle, feedback. */
 export function crediter(monnaie: MonnaieId, valeurBase: number, x: number, y: number, discret = false): void {
-  const gain = valeurBase * state.stats.multiplicateurPlumes * state.stats.multGlobal;
+  // LUNDI DU BOIS (plan 16 §5) : brindilles +50 %
+  const multJour = monnaie === 'brindille' && bonusActif('brindilles') ? 1.5 : 1;
+  const gain = valeurBase * state.stats.multiplicateurPlumes * state.stats.multGlobal * multJour;
   state.save.soldes[monnaie] += gain;
   state.save.cumulsGlobaux[monnaie] += gain;
   // Seuls les smiski font avancer le rebirb (plan 06, étape 1).
@@ -70,7 +73,8 @@ export function crediterDore(montant: number, x: number, y: number, discret = fa
 /** Encaisse un collectible ramassé (par l'héroïne, un chat, l'aimant…). */
 export function encaisserCollectible(c: Collectible): void {
   if (c.dore) {
-    const bonus = state.save.desert['d_moisson'] ? 2 : 1;
+    // JEUDI DORÉ (plan 16 §5) : +1 doré par ramassage au désert
+    const bonus = (state.save.desert['d_moisson'] ? 2 : 1) + (bonusActif('doreDesert') ? 1 : 0);
     crediterDore(bonus, c.x, c.y);
   } else {
     crediter(c.monnaie, state.stats.monnaies[c.monnaie].valeur, c.x, c.y);

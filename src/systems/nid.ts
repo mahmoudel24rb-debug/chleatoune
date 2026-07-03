@@ -6,6 +6,7 @@ import { THEME } from '../data/config';
 import { niveau, state } from '../core/state';
 import { clamp, formatNombre } from '../core/utils';
 import { crediter } from './economy';
+import { bonusActif } from './calendrier';
 import { sons } from './audio';
 import { sauvegarder } from './save';
 import { ajouterToast } from '../ui/toasts';
@@ -45,14 +46,17 @@ export function appliquerGainsHorsLigne(): void {
   const minutes = clamp((Date.now() - save.derniereVisite) / 60000, 0, 720);
   if (minutes < 2) return;
 
-  const facteur = save.talents['t_offline'] ? 2 : 1;
-  const smiski = Math.round(save.nid * (1 + niveau('p_doughcat')) * 3 * minutes * facteur);
+  // DIMANCHE DU MÉTIER (plan 16 §5) : le Métier tisse ×1,5
+  const facteur = (save.talents['t_offline'] ? 2 : 1) * (bonusActif('metier') ? 1.5 : 1);
+  const unites = Math.max(niveau('p_doughcat'), save.compagnons.prairie ?? 0);
+  const smiski = Math.round(save.nid * (1 + unites) * 3 * minutes * facteur);
   const brindilles = Math.round(save.nid * minutes * facteur);
   if (smiski <= 0) return;
 
   crediter('popcorn', smiski, 0, 0, true);
   crediter('brindille', brindilles, 0, 0, true);
+  // « le Métier tisse pendant ton absence » (plan 15 §1)
   ajouterToast(
-    `PENDANT TON ABSENCE (${Math.round(minutes)} MIN) : +${formatNombre(smiski, 0)} ${THEME.monnaies.popcorn.nom} ET +${formatNombre(brindilles, 0)} ${THEME.monnaies.brindille.nom} 🌙`
+    `LE MÉTIER A TISSÉ PENDANT TON ABSENCE (${Math.round(minutes)} MIN) : +${formatNombre(smiski, 0)} ${THEME.monnaies.popcorn.nom} ET +${formatNombre(brindilles, 0)} ${THEME.monnaies.brindille.nom} 🧵`
   );
 }
