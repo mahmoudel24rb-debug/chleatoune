@@ -2,3 +2,6 @@ node_modules
 dist
 release
 .vercel
+
+# captures des tests E2E (fichiers locaux, jamais versionnés)
+tests-e2e/captures/
