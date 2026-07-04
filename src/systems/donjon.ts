@@ -1096,6 +1096,16 @@ function majEscouade(dt: number): void {
       copie.animT += dt;
     }
   }
+
+  // Jamais hors du monde : une copie qui fuit (soigneur, tireur en recul)
+  // au-delà du bord entraîne les monstres — clampés, eux — dans une
+  // poursuite impossible : ils restent collés à la bordure (bug vécu).
+  // Un seul clamp ici couvre tous les rôles, mêmes bornes que les monstres.
+  for (const copie of copies) {
+    if (copie.mortT > 0) continue;
+    copie.x = clamp(copie.x, 30, CONFIG.monde.largeur - 30);
+    copie.y = clamp(copie.y, 30, CONFIG.monde.hauteur - 30);
+  }
 }
 
 // ----------------------------------------------------------- boucle
