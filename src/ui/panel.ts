@@ -71,7 +71,7 @@ function arbreAbordable(m: MonnaieId): boolean {
   return AMELIORATIONS.some((a) => {
     if (a.arbre !== m) return false;
     const niv = niveau(a.id);
-    return niv < a.niveauMax && state.save.soldes[m] >= coutAmelioration(a, niv);
+    return niv < a.niveauMax && state.save.soldes[m] >= coutAmelioration(a, niv, state.save.rebirbs);
   });
 }
 
@@ -81,7 +81,7 @@ function acheter(a: Amelioration, max: boolean): void {
   let achats = 0;
   do {
     if (niv >= a.niveauMax) break;
-    const cout = coutAmelioration(a, niv);
+    const cout = coutAmelioration(a, niv, state.save.rebirbs);
     if (solde < cout) break;
     solde -= cout;
     niv += 1;
@@ -358,7 +358,7 @@ export function majPanneau(): void {
   for (const c of cartes) {
     const niv = niveau(c.a.id);
     const auMax = niv >= c.a.niveauMax;
-    const cout = auMax ? 0 : coutAmelioration(c.a, niv);
+    const cout = auMax ? 0 : coutAmelioration(c.a, niv, state.save.rebirbs);
     const abordable = !auMax && save.soldes[c.a.arbre] >= cout;
 
     setTexte(c.niveauEl, `NIV. ${niv}/${c.a.niveauMax}`);

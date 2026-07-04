@@ -18,8 +18,22 @@ export interface Amelioration {
   affichage(niveau: number): string;
 }
 
-export function coutAmelioration(a: Amelioration, niveau: number): number {
-  return Math.ceil(a.coutBase * Math.pow(a.croissance, niveau));
+/** Renchérissement par recouture (équilibrage 2026-07-04) : sans lui,
+ *  re-maxer les pistes plafonnées coûte un total FIXE (~97 500 smiski)
+ *  face à un revenu qui grandit à chaque recouture → tout re-maxé en
+ *  quelques secondes dès la 5e-6e. Avec ×1,6^recoutures, le rebuild
+ *  reste une chasse de quelques minutes, tout en fondant par rapport au
+ *  seuil du cycle (×5^r) : la recouture reste toujours plus rentable.
+ *  Ne touche PAS le seuil de recouture (cumulCycle = gains bruts). */
+export const CROISSANCE_COUT_RECOUTURE = 1.6;
+
+export function multCoutRecouture(rebirbs: number): number {
+  return Math.pow(CROISSANCE_COUT_RECOUTURE, rebirbs);
+}
+
+export function coutAmelioration(a: Amelioration, niveau: number, rebirbs = 0): number {
+  const multRecouture = a.permanent ? 1 : multCoutRecouture(rebirbs);
+  return Math.ceil(a.coutBase * Math.pow(a.croissance, niveau) * multRecouture);
 }
 
 // --- Formules d'effet (lues par recalculerStats, jamais en dur ailleurs) ---

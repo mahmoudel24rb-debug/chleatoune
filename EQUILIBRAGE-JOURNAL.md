@@ -93,3 +93,31 @@ parent pauvre (un seul usage : 300 pour PROJECTEURS). Coûts pensés
 « milieu de partie » : Yuumi + hérissons récoltent ~large en forêt ;
 si le playtest montre que c'est trop cher avant la porte 6, baisser
 ROSE THÉ (la porte d'entrée du système) avant les autres.
+
+## 2026-07-04 — renchérissement des améliorations par recouture
+
+Constat du joueur (6e recouture, bonus passif +170 %) : les coûts de la
+boutique étaient FIXES → re-maxer toutes les pistes plafonnées
+(vitesse 12 + capacité 40 + chaussures 20 ≈ 97 500 smiski au total)
+prenait quelques secondes. Le rebuild post-recouture n'existait plus.
+
+Correctif : `coût = base × croissance^niveau × 1,6^recoutures`
+(`CROISSANCE_COUT_RECOUTURE` dans `data/upgrades.ts`, non-permanentes
+uniquement). Table :
+
+| Recouture | Mult. | Rebuild capé | Seuil cycle | Part du cycle |
+|---|---|---|---|---|
+| 2 | ×2,6 | 250 k | 25 k | chasse longue |
+| 4 | ×6,6 | 644 k | 625 k | ≈ le cycle |
+| 6 | ×16,8 | 1,63 M | 15,6 M | ~10 % (~10 min actives) |
+| 8 | ×43 | 4,2 M | 391 M | ~1 % |
+
+Pourquoi 1,6 < 5 : le ratio rebuild/cycle fond en (1,6/5)^r — chaque
+recouture reste de plus en plus rentable, la reconstruction redevient
+juste un jeu. GARDE-FOU CLÉMENCE : le seuil de recouture compte les
+gains BRUTS (`cumulCycle`), jamais les dépenses — ce changement ne peut
+pas ralentir l'accès à la recouture suivante. Effet sur VALEUR (999
+niv.) : recul de ~3,4 niveaux par recouture, négligeable.
+
+Manette après playtest : rebuild trop long → 1,5 ; encore expéditif →
+1,7. NE PAS toucher coutBase/croissance en même temps.
