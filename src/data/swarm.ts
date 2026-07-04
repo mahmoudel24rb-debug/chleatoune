@@ -26,8 +26,20 @@ export const SWARM = {
   multElitePV: 5,
   multEliteDegats: 1.5,
   multEliteButin: 4, // XP et butin
-  pvBossBase: 25, // PV boss = pvBossBase × multBoss × H(n)
+  pvBossBase: 25, // PV boss = pvBossBase × multBoss × H(n) × croissancePVBoss^(n-1)
   multBoss: 8,
+  // Courbe PV propre aux boss (équilibrage 2026-07-04, retour de
+  // playtest réel : « les boss meurent plus vite que les monstres de
+  // base »). Vrai à la lettre : un golem élite = 65×5 = 325×H(n) de PV,
+  // la plupart des boss = 200×H(n). Et la puissance de la joueuse
+  // (parchemins, évolutions, hotbar) croît plus vite que H(n) → les
+  // boss tardifs fondaient (27 s mesurées porte 6, cible 45-90 s).
+  // ×1,12^(n-1) : porte 1 intacte (49 s ✔), porte 6 ×1,76 (→ ~48 s),
+  // porte 12 ×3,47 (vrai mur final), Déchirure ×3,90 (continuité).
+  // Manette : trop dur → 1,10 ; encore trop court → 1,15 (jamais avec
+  // pvBossBase en même temps). Les DÉGÂTS des boss ne bougent PAS
+  // (clémence : la difficulté passe par la durée, pas la punition).
+  croissancePVBoss: 1.12,
   multDegatsBoss: 2, // dégâts de contact du boss
   multSkillshot: 2.25, // les tirs télégraphés font PEUR (plan 10)
 

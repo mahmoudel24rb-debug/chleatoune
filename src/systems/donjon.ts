@@ -331,7 +331,12 @@ function creerMonstre(
 
   const pvMax = Math.ceil(
     defBoss
-      ? SWARM.pvBossBase * SWARM.multBoss * multPVCourant() * defBoss.pv * multPVBoss
+      ? SWARM.pvBossBase *
+        SWARM.multBoss *
+        multPVCourant() *
+        Math.pow(SWARM.croissancePVBoss, (porte?.niveau ?? 1) - 1) *
+        defBoss.pv *
+        multPVBoss
       : type.pv * mPV * (archi ? A.multPV : 1)
   );
   return {

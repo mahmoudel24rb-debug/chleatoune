@@ -121,3 +121,37 @@ niv.) : recul de ~3,4 niveaux par recouture, négligeable.
 
 Manette après playtest : rebuild trop long → 1,5 ; encore expéditif →
 1,7. NE PAS toucher coutBase/croissance en même temps.
+
+## 2026-07-04 — courbe de PV des boss (retour de playtest de la joueuse)
+
+Retour réel : « les boss sont trop faciles, je les tue plus facilement
+que les monstres de base ». Diagnostic — elle a raison À LA LETTRE :
+
+- Golem ÉLITE : 65 × 5 = **325 × H(n)** de PV.
+- Boss (pv 1,0 pour 8 des 13) : 25 × 8 = **200 × H(n)** — le trash
+  tanky avait 60 % de PV de plus que le boss.
+- Et la puissance joueuse (parchemins ×1,35, évolutions, hotbar,
+  talents) croît plus vite que H(n) : boss porte 6 mesuré à 27 s
+  (cible 45-90 s), les suivants fondaient encore plus vite. Le journal
+  du 2026-07-03 prévoyait déjà « si confirmé au playtest, agir » —
+  confirmé.
+
+Correctif : `croissancePVBoss = 1,12` — PV boss ×1,12^(porte-1),
+constante dans `data/swarm.ts`, appliquée dans creerMonstre. Table :
+
+| Porte | Mult. | PV boss (pv 1,0) | vs élite golem (325×H) | Attendu |
+|---|---|---|---|---|
+| 1 | ×1,00 | 200×H | sous l'élite (assumé, tuto) | 49 s ✔ inchangé |
+| 3 | ×1,25 | 251×H | sous l'élite (élites scriptées rares) | — |
+| 6 | ×1,76 | 352×H | AU-DESSUS ✔ | 27 s → ~48 s |
+| 9 | ×2,48 | 497×H | ✔ | — |
+| 12 | ×3,47 | 694×H | vrai mur final ✔ | — |
+| Déchirure (13) | ×3,90 | continuité avec p12, + ×1,06/vague | ✔ | — |
+
+Choix : les DÉGÂTS des boss ne bougent pas (clémence — la difficulté
+passe par la durée du combat et ses patterns, pas par la punition).
+XP/butin boss inchangés (le coffre de victoire reste la vraie paie) —
+à surveiller : si les longs combats semblent « pas assez payés »,
+monter le ×8 d'XP boss, pas les PV.
+Manette après playtest : trop dur → 1,10 ; encore trop court → 1,15
+(JAMAIS en même temps que pvBossBase).
